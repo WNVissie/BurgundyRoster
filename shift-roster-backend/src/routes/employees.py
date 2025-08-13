@@ -284,15 +284,8 @@ def remove_employee_skill(employee_id, skill_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-# Licenses endpoints
-@employees_bp.route('/licenses', methods=['GET'])
-# @jwt_required()  # Temporarily removed for debugging
-def list_licenses():
-    try:
-        licenses = License.query.all()
-        return jsonify({'licenses': [l.to_dict() for l in licenses]}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+# License endpoints are now consolidated here.
+# Listing all available license types is handled in licenses.py
 
 @employees_bp.route('/<int:employee_id>/licenses', methods=['GET'])
 @jwt_required()

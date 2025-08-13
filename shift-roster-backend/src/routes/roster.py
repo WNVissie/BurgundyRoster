@@ -189,27 +189,6 @@ def update_roster_entry(roster_id):
         if 'notes' in data:
             roster_entry.notes = data['notes']
 
-        # If approving, create a timesheet entry
-        if action == 'approve':
-            existing_timesheet = Timesheet.query.filter_by(roster_id=roster_entry.id).first()
-            if not existing_timesheet:
-                new_timesheet = Timesheet(
-                    employee_id=roster_entry.employee_id,
-                    roster_id=roster_entry.id,
-                    date=roster_entry.date,
-                    hours_worked=roster_entry.hours,
-                    status='pending', # Or 'approved' if it should be auto-approved
-                    created_at=datetime.utcnow()
-                )
-                db.session.add(new_timesheet)
-        
-        # Log activity before committing
-        log_activity(
-            current_user.id,
-            f'{action}_roster',
-            f"Roster entry for {roster_entry.employee.name} {roster_entry.employee.surname} on {roster_entry.date.strftime('%Y-%m-%d')} was {action}d"
-        )
-
         db.session.commit()
         
         return jsonify({
@@ -277,9 +256,30 @@ def approve_roster_entry(roster_id):
         roster_entry.status = 'approved' if action == 'approve' else 'rejected'
         roster_entry.approved_by = current_user.id
         roster_entry.approved_at = datetime.utcnow()
-        
+
         if 'notes' in data:
             roster_entry.notes = data['notes']
+
+        # If approving, create a timesheet entry
+        if action == 'approve':
+            existing_timesheet = Timesheet.query.filter_by(roster_id=roster_entry.id).first()
+            if not existing_timesheet:
+                new_timesheet = Timesheet(
+                    employee_id=roster_entry.employee_id,
+                    roster_id=roster_entry.id,
+                    date=roster_entry.date,
+                    hours_worked=roster_entry.hours,
+                    status='pending', # Or 'approved' if it should be auto-approved
+                    created_at=datetime.utcnow()
+                )
+                db.session.add(new_timesheet)
+
+        # Log activity before committing
+        log_activity(
+            current_user.id,
+            f'{action}_roster',
+            f"Roster entry for {roster_entry.employee.name} {roster_entry.employee.surname} on {roster_entry.date.strftime('%Y-%m-%d')} was {action}d"
+        )
         
         db.session.commit()
         
