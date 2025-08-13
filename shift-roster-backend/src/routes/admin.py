@@ -138,7 +138,8 @@ def create_area():
         
         area = AreaOfResponsibility(
             name=data['name'],
-            description=data.get('description', '')
+            description=data.get('description', ''),
+            color=data.get('color', '#808080')
         )
         
         db.session.add(area)
@@ -176,6 +177,9 @@ def update_area(area_id):
         
         if 'description' in data:
             area.description = data['description']
+
+        if 'color' in data:
+            area.color = data['color']
         
         db.session.commit()
         

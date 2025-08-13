@@ -84,6 +84,8 @@ def create_app():
     from src.routes.analytics import analytics_bp
     from src.routes.export import export_bp
     from src.routes.timesheets import timesheets_bp
+    from src.routes.licenses import licenses_bp
+    from src.routes.leave import leave_bp
 
     # Register blueprints
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
@@ -93,6 +95,8 @@ def create_app():
     app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
     app.register_blueprint(export_bp, url_prefix='/api/export')
     app.register_blueprint(timesheets_bp, url_prefix='/api/timesheets')
+    app.register_blueprint(licenses_bp, url_prefix='/api/licenses')
+    app.register_blueprint(leave_bp, url_prefix='/api/leave')
 
     # Create database tables and apply lightweight migrations
     with app.app_context():

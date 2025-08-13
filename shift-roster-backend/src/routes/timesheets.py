@@ -59,7 +59,9 @@ def generate_timesheets():
         except ValueError:
             return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
 
-        query = ShiftRoster.query
+        # Generate timesheets only from approved shifts
+        query = ShiftRoster.query.filter_by(status='approved')
+
         if employee_id:
             query = query.filter(ShiftRoster.employee_id == int(employee_id))
 

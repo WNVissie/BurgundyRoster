@@ -180,6 +180,20 @@ def update_roster_entry(roster_id):
         
         if 'notes' in data:
             roster_entry.notes = data['notes']
+
+        # If approving, create a timesheet entry
+        if action == 'approve':
+            existing_timesheet = Timesheet.query.filter_by(roster_id=roster_entry.id).first()
+            if not existing_timesheet:
+                new_timesheet = Timesheet(
+                    employee_id=roster_entry.employee_id,
+                    roster_id=roster_entry.id,
+                    date=roster_entry.date,
+                    hours_worked=roster_entry.hours,
+                    status='pending', # Or 'approved' if it should be auto-approved
+                    created_at=datetime.utcnow()
+                )
+                db.session.add(new_timesheet)
         
         db.session.commit()
         
