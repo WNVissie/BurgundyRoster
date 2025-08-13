@@ -93,7 +93,6 @@ export const employeesAPI = {
   addSkill: (id, skillData) => api.post(`/employees/${id}/skills`, skillData),
   removeSkill: (employeeId, skillId) => api.delete(`/employees/${employeeId}/skills/${skillId}`),
   // Licenses
-  getLicenses: () => api.get('/employees/licenses'),
   getEmployeeLicenses: (employeeId) => api.get(`/employees/${employeeId}/licenses`),
   addLicense: (employeeId, payload) => api.post(`/employees/${employeeId}/licenses`, payload),
   updateLicense: (employeeId, licenseId, payload) => api.put(`/employees/${employeeId}/licenses/${licenseId}`, payload),

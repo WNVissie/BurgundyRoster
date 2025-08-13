@@ -70,11 +70,12 @@ def create_app():
         from flask import jsonify
         return jsonify({'error': 'Fresh token required'}), 401
     
-    # Configure CORS
-    CORS(app, origins=app.config['CORS_ORIGINS'], supports_credentials=True)
+    # Configure CORS to be specific to API routes, preventing conflicts with static file serving.
+    CORS(app, resources={r"/api/*": {"origins": app.config['CORS_ORIGINS']}}, supports_credentials=True)
     
     # Register blueprints
-    app.register_blueprint(user_bp, url_prefix='/api')
+    # Note: user_bp is obsolete and has been removed to avoid conflicts.
+    # Employee management is handled by the employees_bp.
     
     # Import and register new blueprints
     from src.routes.auth import auth_bp
