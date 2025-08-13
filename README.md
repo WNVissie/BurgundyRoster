@@ -293,3 +293,6 @@ For support and questions:
 
 **Built with ❤️ using React, Flask, and modern web technologies**
 
+
+# BurgundyRoster
+Burgundy Shareable Rostering App
