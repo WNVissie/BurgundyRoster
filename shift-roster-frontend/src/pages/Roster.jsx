@@ -1,0 +1,492 @@
+import React, { useState, useCallback } from 'react';
+import { DragDropRoster } from '../components/roster/DragDropRoster';
+import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { 
+  Calendar as CalendarIcon, 
+  Grip,
+  List
+} from 'lucide-react';
+
+// Original static roster view (keeping for comparison)
+import { useAuth } from '../contexts/AuthContext';
+import api, { rosterAPI, employeesAPI, shiftsAPI } from '../lib/api';
+import { Badge } from '../components/ui/badge';
+import { Alert, AlertDescription } from '../components/ui/alert';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '../components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
+import { Calendar } from '../components/ui/calendar';
+import { 
+  Plus, 
+  Clock, 
+  User, 
+  CheckCircle, 
+  AlertCircle,
+  XCircle,
+  Filter,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
+import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, parseISO } from 'date-fns';
+
+function StaticRosterView() {
+  const { isAdmin, isManager } = useAuth();
+  const [roster, setRoster] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [shifts, setShifts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  // const [selectedDate, setSelectedDate] = useState(new Date());
+  const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState('');
+  const [selectedShift, setSelectedShift] = useState('');
+  const [selectedRosterDate, setSelectedRosterDate] = useState(new Date());
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const startDate = startOfWeek(currentWeek);
+      const endDate = endOfWeek(currentWeek);
+      
+      const [rosterRes, employeesRes, shiftsRes] = await Promise.all([
+        rosterAPI.getAll({
+          start_date: format(startDate, 'yyyy-MM-dd'),
+          end_date: format(endDate, 'yyyy-MM-dd')
+        }),
+        employeesAPI.getAll(),
+        shiftsAPI.getAll()
+      ]);
+      
+      setRoster(rosterRes.data.roster || []);
+      setEmployees(employeesRes.data.employees || []);
+      setShifts(shiftsRes.data.shifts || []);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to fetch roster data');
+    } finally {
+      setLoading(false);
+    }
+  }, [currentWeek]);
+
+  React.useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleCreateRoster = async () => {
+    try {
+      const selShift = shifts.find(s => s.id === parseInt(selectedShift));
+      const rosterData = {
+        employee_id: parseInt(selectedEmployee),
+        shift_id: parseInt(selectedShift),
+        date: format(selectedRosterDate, 'yyyy-MM-dd'),
+        status: 'pending',
+        hours: selShift?.hours
+      };
+      
+      await rosterAPI.create(rosterData);
+      setIsDialogOpen(false);
+      setSelectedEmployee('');
+      setSelectedShift('');
+      fetchData();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to create roster entry');
+    }
+  };
+
+  const handleApproval = async (rosterId, action) => {
+    try {
+      await rosterAPI.approve(rosterId, { action });
+      fetchData();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to update approval status');
+    }
+  };
+
+  const getWeekDays = () => {
+    const start = startOfWeek(currentWeek);
+    const end = endOfWeek(currentWeek);
+    return eachDayOfInterval({ start, end });
+  };
+
+  const getRosterForDate = (date) => {
+    return roster.filter(r => isSameDay(parseISO(r.date), date));
+  };
+
+  const getEmployee = (employeeId) => {
+    return employees.find(e => e.id === employeeId);
+  };
+
+  const getShift = (shiftId) => {
+    return shifts.find(s => s.id === shiftId);
+  };
+
+  // status helpers moved inline using colored badges
+
+  const navigateWeek = (direction) => {
+    setCurrentWeek(prev => addDays(prev, direction * 7));
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  const weekDays = getWeekDays();
+
+  return (
+    <div className="space-y-6">
+      {/* Week Navigation */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <Button variant="outline" onClick={() => navigateWeek(-1)}>
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Previous Week
+            </Button>
+            
+            <div className="text-center">
+              <h2 className="text-lg font-semibold">
+                {format(weekDays[0], 'MMM d')} - {format(weekDays[6], 'MMM d, yyyy')}
+              </h2>
+              <p className="text-sm text-gray-500">Traditional View</p>
+            </div>
+            
+            <Button variant="outline" onClick={() => navigateWeek(1)}>
+              Next Week
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+          {/* Export controls */}
+          <div className="mt-4 flex items-center gap-2 justify-end">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  const params = {
+                    start_date: format(weekDays[0], 'yyyy-MM-dd'),
+                    end_date: format(weekDays[6], 'yyyy-MM-dd')
+                  };
+                  const res = await api.get('/export/roster/excel', { params, responseType: 'blob' });
+                  const url = window.URL.createObjectURL(new Blob([res.data]));
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `roster_${format(new Date(), 'yyyyMMdd_HHmmss')}.xlsx`;
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                } catch {
+                  setError('Failed to export roster to Excel');
+                }
+              }}
+            >
+              Export Excel
+            </Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  const params = {
+                    start_date: format(weekDays[0], 'yyyy-MM-dd'),
+                    end_date: format(weekDays[6], 'yyyy-MM-dd')
+                  };
+                  const res = await api.get('/export/roster/pdf', { params, responseType: 'blob' });
+                  const url = window.URL.createObjectURL(new Blob([res.data]));
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `roster_${format(new Date(), 'yyyyMMdd_HHmmss')}.pdf`;
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                } catch {
+                  setError('Failed to export roster to PDF');
+                }
+              }}
+            >
+              Export PDF
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Add Shift Dialog */}
+      {(isAdmin() || isManager()) && (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Schedule Shift
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Schedule New Shift</DialogTitle>
+              <DialogDescription>
+                Assign an employee to a shift for a specific date.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Employee</label>
+                <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an employee" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map((employee) => (
+                      <SelectItem key={employee.id} value={employee.id.toString()}>
+                        {employee.name} {employee.surname} - {employee.employee_id}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Shift</label>
+                <Select value={selectedShift} onValueChange={setSelectedShift}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a shift" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {shifts.map((shift) => (
+                      <SelectItem key={shift.id} value={shift.id.toString()}>
+                        {shift.name} ({shift.start_time} - {shift.end_time})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Date</label>
+                <Calendar
+                  mode="single"
+                  selected={selectedRosterDate}
+                  onSelect={setSelectedRosterDate}
+                  className="rounded-md border"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleCreateRoster}
+                disabled={!selectedEmployee || !selectedShift}
+              >
+                Schedule
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Weekly Calendar View with colors and scroll container */}
+      <div className="grid grid-cols-7 gap-4 max-h-[70vh] overflow-y-auto pr-2">
+        {weekDays.map((day, index) => {
+          const dayRoster = getRosterForDate(day);
+          const isToday = isSameDay(day, new Date());
+          
+          return (
+            <Card key={index} className={`min-h-[300px] ${isToday ? 'ring-2 ring-blue-500' : ''}`}>
+              <CardContent className="p-3">
+                <div className="text-center mb-3">
+                  <div className="text-sm font-medium">{format(day, 'EEE')}</div>
+                  <div className="text-lg font-bold">{format(day, 'd')}</div>
+                </div>
+                
+                <div className="space-y-2">
+                  {dayRoster.map((rosterEntry) => {
+                    const employee = getEmployee(rosterEntry.employee_id);
+                    const shift = getShift(rosterEntry.shift_id);
+                    
+                    return (
+                      <div
+                        key={rosterEntry.id}
+                        className={`p-2 rounded-md text-xs`}
+                        style={{
+                          backgroundColor: (shift?.color || '#e5e7eb') + '20',
+                          border: `1px solid ${shift?.color || '#e5e7eb'}`
+                        }}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium">
+                            {employee?.name} {employee?.surname}
+                          </span>
+                          <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded ${
+                            rosterEntry.status === 'approved' ? 'bg-green-100 text-green-800' : rosterEntry.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {rosterEntry.status === 'approved' ? <CheckCircle className="h-3 w-3 text-green-600" /> : rosterEntry.status === 'rejected' ? <XCircle className="h-3 w-3 text-red-600" /> : <AlertCircle className="h-3 w-3 text-yellow-600" />}
+                            {rosterEntry.status}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center text-xs opacity-75">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {shift?.start_time} - {shift?.end_time} • {rosterEntry.hours}h
+                        </div>
+                        
+                        <div className="text-xs opacity-75 mt-1">
+                          {shift?.name}
+                        </div>
+                        
+                        {(isAdmin() || isManager()) && rosterEntry.status === 'pending' && (
+                          <div className="flex space-x-1 mt-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-6 px-2 text-xs border-green-600 text-green-700 hover:bg-green-50"
+                              onClick={() => handleApproval(rosterEntry.id, 'approve')}
+                            >
+                              ✓
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-6 px-2 text-xs border-red-600 text-red-700 hover:bg-red-50"
+                              onClick={() => handleApproval(rosterEntry.id, 'reject')}
+                            >
+                              ✗
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  
+                  {dayRoster.length === 0 && (
+                    <div className="text-center text-gray-400 py-8">
+                      <CalendarIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-xs">No shifts scheduled</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <div>
+                <p className="text-sm font-medium">Approved</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {roster.filter(r => r.status === 'approved').length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <AlertCircle className="h-5 w-5 text-yellow-600" />
+              <div>
+                <p className="text-sm font-medium">Pending</p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {roster.filter(r => r.status === 'pending').length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <XCircle className="h-5 w-5 text-red-600" />
+              <div>
+                <p className="text-sm font-medium">Rejected</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {roster.filter(r => r.status === 'rejected').length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <User className="h-5 w-5 text-blue-600" />
+              <div>
+                <p className="text-sm font-medium">Total Shifts</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {roster.length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+export function Roster() {
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Shift Roster</h1>
+          <p className="text-gray-600 mt-1">Manage employee shift schedules with drag & drop</p>
+        </div>
+      </div>
+
+      {/* Tabs for different views */}
+      <Tabs defaultValue="drag-drop" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="drag-drop" className="flex items-center">
+            <Grip className="h-4 w-4 mr-2" />
+            Drag & Drop
+          </TabsTrigger>
+          <TabsTrigger value="traditional" className="flex items-center">
+            <List className="h-4 w-4 mr-2" />
+            Traditional View
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="drag-drop" className="mt-6">
+          <DragDropRoster />
+        </TabsContent>
+        
+        <TabsContent value="traditional" className="mt-6">
+          <StaticRosterView />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
