@@ -4,7 +4,10 @@ This document provides comprehensive documentation for all API endpoints in the 
 
 ## 🔐 Authentication
 
-All API endpoints (except login) require JWT authentication. Include the token in the Authorization header:
+
+**Note:** Authentication is currently disabled for most endpoints during testing. Only login and Google OAuth endpoints require credentials for now. JWT tokens will be required for all endpoints after testing is complete.
+
+All API endpoints (except login) require JWT authentication (when enabled). Include the token in the Authorization header:
 
 ```
 Authorization: Bearer <your-jwt-token>

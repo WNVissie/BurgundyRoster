@@ -1,5 +1,11 @@
 # Employee Shift Roster Management System
 
+**Note:** Authentication is currently disabled for most API endpoints during testing. Only login and Google OAuth endpoints require credentials for now. JWT tokens will be required for all endpoints after testing is complete.
+
+**.gitignore:** The repository includes a .gitignore file configured for both Python (backend) and Node/React (frontend) environments. This ensures that unnecessary files (e.g., venv, node_modules, logs, build artifacts) are excluded from version control.
+
+**Documentation:** The database schema and API documentation have been updated to match the actual implementation. Please refer to `design_document.md` and `API_DOCUMENTATION.md` for the latest details on models and endpoints.
+
 A comprehensive web application for managing employee shifts, schedules, and workforce analytics with role-based access control and Google OAuth authentication.
 
 ## 🚀 Features

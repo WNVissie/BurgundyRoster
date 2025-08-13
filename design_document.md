@@ -25,71 +25,128 @@ A comprehensive employee shift roster application with React frontend and Flask 
 
 #### Users Table
 - id (Primary Key)
-- google_id (Unique)
-- email
-- name
-- surname
-- employee_id
-- contact_no
-- role_id (Foreign Key to Roles)
+- google_id (Unique, String)
+- email (Unique, String)
+- name (String)
+- surname (String)
+- employee_id (Unique, String, nullable)
+- contact_no (String, default='')
+- alt_contact_name (String, nullable)
+- alt_contact_no (String, nullable)
+- designation_id (Foreign Key to Designations)
+- role_id (Foreign Key to Roles, not null)
 - area_of_responsibility_id (Foreign Key to Areas)
-- created_at
-- updated_at
+- created_at (DateTime)
+- updated_at (DateTime)
+- Relationships:
+	- skills (Many-to-Many with Skills)
+	- shift_rosters (One-to-Many with ShiftRoster)
+	- timesheets (One-to-Many with Timesheet)
+	- approved_rosters (One-to-Many with ShiftRoster, as approver)
+	- approved_timesheets (One-to-Many with Timesheet, as approver)
+	- licenses_assoc (One-to-Many with EmployeeLicense)
 
 #### Roles Table
 - id (Primary Key)
-- name (Admin, Manager, Employee, Guest)
-- permissions (JSON field)
-- created_at
+- name (Unique, String)
+- permissions (JSON/Text)
+- created_at (DateTime)
+- Relationships:
+	- users (One-to-Many with Users)
+
+#### Designations Table
+- designation_id (Primary Key)
+- designation_name (Unique, String)
+- created_on (DateTime)
+- Relationships:
+	- users (One-to-Many with Users)
 
 #### Areas of Responsibility Table
 - id (Primary Key)
-- name
-- description
-- created_at
+- name (Unique, String)
+- description (Text)
+- created_at (DateTime)
+- Relationships:
+	- users (One-to-Many with Users)
 
 #### Skills Table
 - id (Primary Key)
-- name
-- description
-- created_at
+- name (Unique, String)
+- description (Text)
+- created_at (DateTime)
+- Relationships:
+	- employees (Many-to-Many with Users)
 
 #### Employee Skills Table (Many-to-Many)
 - employee_id (Foreign Key to Users)
 - skill_id (Foreign Key to Skills)
-- proficiency_level
-- created_at
+- proficiency_level (String, default='Beginner')
+- created_at (DateTime)
+
+#### Licenses Table
+- id (Primary Key)
+- name (Unique, String)
+- description (Text)
+- created_at (DateTime)
+
+#### Employee Licenses Table
+- id (Primary Key)
+- employee_id (Foreign Key to Users)
+- license_id (Foreign Key to Licenses)
+- expiry_date (Date)
+- created_at (DateTime)
 
 #### Shifts Table
 - id (Primary Key)
-- name
-- start_time
-- end_time
-- hours
-- description
-- created_at
+- name (Unique, String)
+- start_time (Time)
+- end_time (Time)
+- hours (Float)
+- description (Text)
+- color (String, default='#3498db')
+- created_at (DateTime)
+- Relationships:
+	- shift_rosters (One-to-Many with ShiftRoster)
 
 #### Shift Roster Table
 - id (Primary Key)
-- employee_id (Foreign Key to Users)
-- shift_id (Foreign Key to Shifts)
-- date
-- hours
-- status (pending, approved, rejected)
+- employee_id (Foreign Key to Users, not null)
+- shift_id (Foreign Key to Shifts, not null)
+- date (Date)
+- hours (Float)
+- status (String, default='pending')
 - approved_by (Foreign Key to Users)
-- approved_at
-- created_at
+- approved_at (DateTime)
+- notes (Text)
+- created_at (DateTime)
+- Relationships:
+	- timesheets (One-to-Many with Timesheet)
 
 #### Timesheets Table
 - id (Primary Key)
-- employee_id (Foreign Key to Users)
-- roster_id (Foreign Key to Shift Roster)
-- date
-- hours_worked
-- status (pending, approved, rejected)
+- employee_id (Foreign Key to Users, not null)
+- roster_id (Foreign Key to ShiftRoster, not null)
+- date (Date)
+- hours_worked (Float)
+- status (String, default='pending')
 - approved_by (Foreign Key to Users)
-- approved_at
-- created_at
+- approved_at (DateTime)
+- notes (Text)
+- created_at (DateTime)
+
+#### Leave Requests Table
+- id (Primary Key)
+- employee_id (Foreign Key to Users, not null)
+- leave_type (String: paid, unpaid, sick)
+- start_date (Date)
+- end_date (Date)
+- days (Integer)
+- reason (Text)
+- status (String, default='pending')
+- approved_by (Foreign Key to Users)
+- approved_at (DateTime)
+- created_at (DateTime)
+
 
 ## Key Features
 
