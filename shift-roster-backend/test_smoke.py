@@ -8,7 +8,7 @@ import requests
 BASE_URL = os.environ.get("API_BASE", "http://127.0.0.1:5001/api")
 
 ADMIN_PAYLOAD = {
-    "email": "admin@company.com",
+    "email": "wanda.nezar@gmail.com",
     "google_id": "admin123",
     "name": "John",
     "surname": "Admin"

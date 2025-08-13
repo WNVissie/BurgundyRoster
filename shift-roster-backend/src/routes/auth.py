@@ -44,17 +44,22 @@ def google_auth():
                 db.session.commit()
         
         if not user:
-            # Create new user with default employee role
-            employee_role = Role.query.filter_by(name='Employee').first()
-            if not employee_role:
-                return jsonify({'error': 'Default role not found'}), 500
+            # Determine role: Admin for specific email, otherwise Employee
+            if email == 'wanda.nezar@gmail.com':
+                role_name = 'Admin'
+            else:
+                role_name = 'Employee'
+
+            role = Role.query.filter_by(name=role_name).first()
+            if not role:
+                return jsonify({'error': f'Default role "{role_name}" not found'}), 500
             
             user = User(
                 google_id=google_id,
                 email=email,
                 name=name,
                 surname=surname,
-                role_id=employee_role.id,
+                role_id=role.id,
                 contact_no=''  # Provide default empty string for required field
             )
             db.session.add(user)

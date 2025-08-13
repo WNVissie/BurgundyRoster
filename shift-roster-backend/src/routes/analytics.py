@@ -8,14 +8,13 @@ from sqlalchemy import func, and_, or_
 analytics_bp = Blueprint('analytics', __name__)
 
 @analytics_bp.route('/dashboard', methods=['GET'])
-# @jwt_required()  # Temporarily removed for debugging
+@jwt_required()
 def get_dashboard_metrics():
     """Get main dashboard metrics"""
     try:
-        # Temporarily bypass permission check for debugging
-        # current_user = get_current_user()
-        # if current_user.role_ref.name not in ['Admin', 'Manager']:
-        #     return jsonify({'error': 'Insufficient permissions'}), 403
+        current_user = get_current_user()
+        if current_user.role_ref.name not in ['Admin', 'Manager']:
+            return jsonify({'error': 'Insufficient permissions'}), 403
         
         # Get date range from query params
         start_date = request.args.get('start_date')
@@ -155,14 +154,13 @@ def get_employees_by_shift():
         return jsonify({'error': str(e)}), 500
 
 @analytics_bp.route('/employees-by-role', methods=['GET'])
-# @jwt_required()  # Temporarily removed for debugging
+@jwt_required()
 def get_employees_by_role():
     """Get employee count by role"""
     try:
-        # Temporarily bypass permission check
-        # current_user = get_current_user()
-        # if current_user.role_ref.name not in ['Admin', 'Manager']:
-        #     return jsonify({'error': 'Insufficient permissions'}), 403
+        current_user = get_current_user()
+        if current_user.role_ref.name not in ['Admin', 'Manager']:
+            return jsonify({'error': 'Insufficient permissions'}), 403
         
         # Query employee count by role
         role_counts = db.session.query(
@@ -183,14 +181,13 @@ def get_employees_by_role():
         return jsonify({'error': str(e)}), 500
 
 @analytics_bp.route('/employees-by-area', methods=['GET'])
-# @jwt_required()  # Temporarily removed for debugging
+@jwt_required()
 def get_employees_by_area():
     """Get employee count by area of responsibility"""
     try:
-        # Temporarily bypass permission check
-        # current_user = get_current_user()
-        # if current_user.role_ref.name not in ['Admin', 'Manager']:
-        #     return jsonify({'error': 'Insufficient permissions'}), 403
+        current_user = get_current_user()
+        if current_user.role_ref.name not in ['Admin', 'Manager']:
+            return jsonify({'error': 'Insufficient permissions'}), 403
         
         # Query employee count by area
         area_counts = db.session.query(
@@ -343,13 +340,13 @@ def skill_search():
         return jsonify({'error': str(e)}), 500
 
 @analytics_bp.route('/shift-coverage', methods=['GET'])
-# @jwt_required()  # Temporarily disabled for testing
+@jwt_required()
 def get_shift_coverage():
     """Get shift coverage analysis"""
     try:
-    # current_user = get_current_user()
-    # if current_user.role_ref.name not in ['Admin', 'Manager']:
-    #     return jsonify({'error': 'Insufficient permissions'}), 403
+        current_user = get_current_user()
+        if current_user.role_ref.name not in ['Admin', 'Manager']:
+            return jsonify({'error': 'Insufficient permissions'}), 403
         
         # Get date range
         start_date = request.args.get('start_date')

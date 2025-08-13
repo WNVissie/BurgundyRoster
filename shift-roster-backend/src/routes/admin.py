@@ -9,7 +9,7 @@ admin_bp = Blueprint('admin', __name__)
 
 # Roles Management
 @admin_bp.route('/roles', methods=['GET'])
-# @jwt_required()  # Temporarily removed for debugging
+@jwt_required()
 def get_roles():
     """Get all roles"""
     try:
@@ -109,7 +109,7 @@ def delete_role(role_id):
 
 # Areas of Responsibility Management
 @admin_bp.route('/areas', methods=['GET'])
-# @jwt_required()  # Temporarily removed for debugging
+@jwt_required()
 def get_areas():
     """Get all areas of responsibility"""
     try:
@@ -216,7 +216,7 @@ def delete_area(area_id):
 
 # Skills Management
 @admin_bp.route('/skills', methods=['GET'])
-# @jwt_required()  # Temporarily removed for debugging
+@jwt_required()
 def get_skills():
     """Get all skills"""
     try:

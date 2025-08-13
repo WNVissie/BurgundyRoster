@@ -4,7 +4,7 @@ from src.models.models import Designation
 
 designations_bp = Blueprint('designations', __name__)
 
-@designations_bp.route('/', methods=['GET'])
+@designations_bp.route('', methods=['GET'])
 @jwt_required()
 def get_designations():
     """Get all designation types."""

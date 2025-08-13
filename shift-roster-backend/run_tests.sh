@@ -3,6 +3,10 @@
 # Exit immediately if a command exits with a non-zero status.
 set -e
 
+# Ensure the database is in a clean, seeded state
+echo "Seeding the database for test..."
+python run_seed.py
+
 # Start the server in the background
 echo "Starting server..."
 python src/main.py > server.log 2>&1 &
