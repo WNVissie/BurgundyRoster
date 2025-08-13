@@ -6,7 +6,7 @@ from datetime import datetime
 
 leave_bp = Blueprint('leave', __name__)
 
-@leave_bp.route('/', methods=['GET'])
+@leave_bp.route('', methods=['GET'])
 @jwt_required()
 def get_leave_requests():
     """
@@ -36,7 +36,7 @@ def get_leave_requests():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@leave_bp.route('/', methods=['POST'])
+@leave_bp.route('', methods=['POST'])
 @jwt_required()
 def create_leave_request():
     """Create a new leave request."""

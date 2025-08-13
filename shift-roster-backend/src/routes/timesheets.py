@@ -7,7 +7,7 @@ from src.utils.decorators import get_current_user
 timesheets_bp = Blueprint('timesheets', __name__)
 
 # GET endpoint to fetch timesheets
-@timesheets_bp.route('/', methods=['GET'])
+@timesheets_bp.route('', methods=['GET'])
 def get_timesheets():
     """Fetch timesheets, optionally filtered by date range and/or employee."""
     try:
