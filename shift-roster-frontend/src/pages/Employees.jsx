@@ -25,6 +25,12 @@ import {
   SelectValue,
 } from '../components/ui/select';
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '../components/ui/accordion';
+import {
   Table,
   TableBody,
   TableCell,
@@ -276,9 +282,8 @@ export function Employees() {
     return role ? role.name : 'Unknown';
   };
 
-  const getAreaName = (areaId) => {
-    const area = areas.find(a => a.id === areaId);
-    return area ? area.name : 'Unknown';
+  const getArea = (areaId) => {
+    return areas.find(a => a.id === areaId);
   };
 
   if (loading) {
@@ -332,7 +337,7 @@ export function Employees() {
                   {editingEmployee ? 'Update employee information.' : 'Add a new employee to the system.'}
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4 p-2 max-h-[80vh] overflow-y-auto">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="name">First Name</Label>
@@ -414,60 +419,69 @@ export function Employees() {
                   </div>
                 </div>
 
-                {/* Skills multi-select */}
-                <div>
-                  <Label>Skills</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-                    {skills.map((skill) => (
-                      <label key={skill.id} className="flex items-center space-x-2 text-sm">
-                        <Checkbox
-                          checked={selectedSkills.includes(skill.id.toString())}
-                          onCheckedChange={(checked) => {
-                            const id = skill.id.toString();
-                            setSelectedSkills((prev) => checked ? [...prev, id] : prev.filter(s => s !== id));
-                          }}
-                        />
-                        <span>{skill.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Licenses with expiry */}
-                <div>
-                  <Label>Licenses</Label>
-                  <div className="space-y-2 mt-2">
-                    {licenseOptions.map((lic) => {
-                      const id = lic.id.toString();
-                      const selected = selectedLicenses.includes(id);
-                      return (
-                        <div key={lic.id} className="flex flex-col md:flex-row md:items-center md:space-x-3 p-2 border rounded">
-                          <label className="flex items-center space-x-2 text-sm">
+                <Accordion type="multiple" className="w-full">
+                  <AccordionItem value="skills">
+                    <AccordionTrigger>Skills</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                        {skills.map((skill) => (
+                          <label key={skill.id} className="flex items-center space-x-2 text-sm">
                             <Checkbox
-                              checked={selected}
+                              checked={selectedSkills.includes(skill.id.toString())}
                               onCheckedChange={(checked) => {
-                                setSelectedLicenses((prev) => checked ? [...prev, id] : prev.filter(x => x !== id));
+                                const id = skill.id.toString();
+                                setSelectedSkills((prev) => checked ? [...prev, id] : prev.filter(s => s !== id));
                               }}
                             />
-                            <span>{lic.name}</span>
+                            <span>{skill.name}</span>
                           </label>
-                          {selected && (
-                            <div className="mt-2 md:mt-0 md:ml-auto flex items-center space-x-2">
-                              <Label htmlFor={`exp_${id}`} className="text-xs">Expiry</Label>
-                              <Input
-                                id={`exp_${id}`}
-                                type="date"
-                                value={licenseExpiry[id] || ''}
-                                onChange={(e) => setLicenseExpiry(prev => ({...prev, [id]: e.target.value}))}
-                                className="h-8"
-                              />
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                  <AccordionItem value="licenses">
+                    <AccordionTrigger>Licenses</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-2 mt-2">
+                        {licenseOptions.map((lic) => {
+                          const id = lic.id.toString();
+                          const selected = selectedLicenses.includes(id);
+                          return (
+                            <div key={lic.id} className="flex flex-col md:flex-row md:items-center md:space-x-3 p-2 border rounded">
+                              <label className="flex items-center space-x-2 text-sm">
+                                <Checkbox
+                                  checked={selected}
+                                  onCheckedChange={(checked) => {
+                                    setSelectedLicenses((prev) => checked ? [...prev, id] : prev.filter(x => x !== id));
+                                  }}
+                                />
+                                <span>{lic.name}</span>
+                              </label>
+                              {selected && (
+                                <div className="mt-2 md:mt-0 md:ml-auto flex items-center space-x-2">
+                                  <Label htmlFor={`exp_${id}`} className="text-xs">Expiry</Label>
+                                  <Input
+                                    id={`exp_${id}`}
+                                    type="date"
+                                    value={licenseExpiry[id] || ''}
+                                    onChange={(e) => setLicenseExpiry(prev => ({...prev, [id]: e.target.value}))}
+                                    className="h-8"
+                                  />
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                          );
+                        })}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                  <AccordionItem value="rates">
+                    <AccordionTrigger>Rates</AccordionTrigger>
+                    <AccordionContent>
+                      <p className="text-sm text-gray-500">Rate management will be implemented here.</p>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
                 
                 <div>
                   <Label htmlFor="role">Role</Label>
@@ -639,7 +653,20 @@ export function Employees() {
                     <TableCell>
                       <div className="text-sm flex items-center">
                         <MapPin className="h-3 w-3 mr-1" />
-                        {getAreaName(employee.area_of_responsibility_id)}
+                    {(() => {
+                      const area = getArea(employee.area_of_responsibility_id);
+                      if (!area) return 'N/A';
+                      return (
+                        <Badge
+                          style={{
+                            backgroundColor: area.color,
+                            color: 'white', // A simple choice, could be improved with a color contrast function
+                          }}
+                        >
+                          {area.name}
+                        </Badge>
+                      );
+                    })()}
                       </div>
                     </TableCell>
                     <TableCell>

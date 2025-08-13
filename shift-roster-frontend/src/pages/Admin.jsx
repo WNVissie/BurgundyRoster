@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { rolesAPI, areasAPI, skillsAPI, shiftsAPI } from '../lib/api';
+import { rolesAPI, areasAPI, skillsAPI, shiftsAPI, licensesAPI } from '../lib/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -34,7 +34,8 @@ import {
   Award, 
   Clock,
   AlertCircle,
-  Settings
+  Settings,
+  FileText
 } from 'lucide-react';
 
 export function Admin() {
@@ -42,6 +43,7 @@ export function Admin() {
   const [areas, setAreas] = useState([]);
   const [skills, setSkills] = useState([]);
   const [shifts, setShifts] = useState([]);
+  const [licenses, setLicenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('roles');
@@ -51,18 +53,21 @@ export function Admin() {
   const [isAreaDialogOpen, setIsAreaDialogOpen] = useState(false);
   const [isSkillDialogOpen, setIsSkillDialogOpen] = useState(false);
   const [isShiftDialogOpen, setIsShiftDialogOpen] = useState(false);
+  const [isLicenseDialogOpen, setIsLicenseDialogOpen] = useState(false);
   
   // Form states
   const [roleForm, setRoleForm] = useState({ name: '', description: '', permissions: {} });
-  const [areaForm, setAreaForm] = useState({ name: '', description: '' });
+  const [areaForm, setAreaForm] = useState({ name: '', description: '', color: '#808080' });
   const [skillForm, setSkillForm] = useState({ name: '', description: '', category: '' });
   const [shiftForm, setShiftForm] = useState({ name: '', start_time: '', end_time: '', hours: '', color: '#3498db' });
+  const [licenseForm, setLicenseForm] = useState({ name: '', description: '' });
   
   // Editing states
   const [editingRole, setEditingRole] = useState(null);
   const [editingArea, setEditingArea] = useState(null);
   const [editingSkill, setEditingSkill] = useState(null);
   const [editingShift, setEditingShift] = useState(null);
+  const [editingLicense, setEditingLicense] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -71,21 +76,61 @@ export function Admin() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [rolesRes, areasRes, skillsRes, shiftsRes] = await Promise.all([
+      const [rolesRes, areasRes, skillsRes, shiftsRes, licensesRes] = await Promise.all([
         rolesAPI.getAll(),
         areasAPI.getAll(),
         skillsAPI.getAll(),
-        shiftsAPI.getAll()
+        shiftsAPI.getAll(),
+        licensesAPI.getAll()
       ]);
       
       setRoles(rolesRes.data.roles || []);
       setAreas(areasRes.data.areas || []);
       setSkills(skillsRes.data.skills || []);
       setShifts(shiftsRes.data.shifts || []);
+      setLicenses(licensesRes.data || []);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to fetch data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // License management
+  const handleLicenseSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingLicense) {
+        await licensesAPI.update(editingLicense.id, licenseForm);
+      } else {
+        await licensesAPI.create(licenseForm);
+      }
+      setIsLicenseDialogOpen(false);
+      setEditingLicense(null);
+      setLicenseForm({ name: '', description: '' });
+      fetchData();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to save license');
+    }
+  };
+
+  const handleLicenseEdit = (license) => {
+    setEditingLicense(license);
+    setLicenseForm({
+      name: license.name,
+      description: license.description || ''
+    });
+    setIsLicenseDialogOpen(true);
+  };
+
+  const handleLicenseDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this license?')) {
+      try {
+        await licensesAPI.delete(id);
+        fetchData();
+      } catch (err) {
+        setError(err.response?.data?.error || 'Failed to delete license');
+      }
     }
   };
 
@@ -139,7 +184,7 @@ export function Admin() {
       }
       setIsAreaDialogOpen(false);
       setEditingArea(null);
-      setAreaForm({ name: '', description: '' });
+      setAreaForm({ name: '', description: '', color: '#808080' });
       fetchData();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to save area');
@@ -150,7 +195,8 @@ export function Admin() {
     setEditingArea(area);
     setAreaForm({
       name: area.name,
-      description: area.description || ''
+      description: area.description || '',
+      color: area.color || '#808080'
     });
     setIsAreaDialogOpen(true);
   };
@@ -278,11 +324,12 @@ export function Admin() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="roles">Roles</TabsTrigger>
           <TabsTrigger value="areas">Areas</TabsTrigger>
           <TabsTrigger value="skills">Skills</TabsTrigger>
           <TabsTrigger value="shifts">Shifts</TabsTrigger>
+          <TabsTrigger value="licenses">Licenses</TabsTrigger>
         </TabsList>
 
         {/* Roles Tab */}
@@ -406,7 +453,7 @@ export function Admin() {
                   <DialogTrigger asChild>
                     <Button onClick={() => {
                       setEditingArea(null);
-                      setAreaForm({ name: '', description: '' });
+                      setAreaForm({ name: '', description: '', color: '#808080' });
                     }}>
                       <Plus className="h-4 w-4 mr-2" />
                       Add Area
@@ -429,6 +476,16 @@ export function Admin() {
                           value={areaForm.name}
                           onChange={(e) => setAreaForm({...areaForm, name: e.target.value})}
                           required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="area-color">Color</Label>
+                        <Input
+                          id="area-color"
+                          type="color"
+                          value={areaForm.color}
+                          onChange={(e) => setAreaForm({...areaForm, color: e.target.value})}
+                          className="w-24"
                         />
                       </div>
                       <div>
@@ -746,6 +803,109 @@ export function Admin() {
                             variant="ghost" 
                             size="sm" 
                             onClick={() => handleShiftDelete(shift.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Licenses Tab */}
+        <TabsContent value="licenses" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center">
+                    <FileText className="h-5 w-5 mr-2" />
+                    License Management
+                  </CardTitle>
+                  <CardDescription>
+                    Define employee licenses and certifications
+                  </CardDescription>
+                </div>
+                <Dialog open={isLicenseDialogOpen} onOpenChange={setIsLicenseDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button onClick={() => {
+                      setEditingLicense(null);
+                      setLicenseForm({ name: '', description: '' });
+                    }}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add License
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>
+                        {editingLicense ? 'Edit License' : 'Add New License'}
+                      </DialogTitle>
+                      <DialogDescription>
+                        {editingLicense ? 'Update license information.' : 'Create a new license type.'}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleLicenseSubmit} className="space-y-4">
+                      <div>
+                        <Label htmlFor="license-name">License Name</Label>
+                        <Input
+                          id="license-name"
+                          value={licenseForm.name}
+                          onChange={(e) => setLicenseForm({...licenseForm, name: e.target.value})}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="license-description">Description</Label>
+                        <Textarea
+                          id="license-description"
+                          value={licenseForm.description}
+                          onChange={(e) => setLicenseForm({...licenseForm, description: e.target.value})}
+                        />
+                      </div>
+                      <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setIsLicenseDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="submit">
+                          {editingLicense ? 'Update' : 'Create'}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {licenses.map((license) => (
+                    <TableRow key={license.id}>
+                      <TableCell>
+                        <Badge variant="outline">{license.name}</Badge>
+                      </TableCell>
+                      <TableCell>{license.description}</TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button variant="ghost" size="sm" onClick={() => handleLicenseEdit(license)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleLicenseDelete(license.id)}
                             className="text-red-600 hover:text-red-700"
                           >
                             <Trash2 className="h-4 w-4" />

@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from src.models.models import db, ShiftRoster, User, Shift, Timesheet
 from src.utils.decorators import permission_required, get_current_user
+from src.utils.logging import log_activity
 from datetime import datetime, date
 from sqlalchemy import and_, or_
 
@@ -127,6 +128,13 @@ def create_roster_entry():
         
         db.session.add(roster_entry)
         db.session.commit()
+
+        # Log activity
+        log_activity(
+            current_user.id,
+            'create_roster',
+            f"Scheduled {employee.name} {employee.surname} for {shift.name} on {roster_date.strftime('%Y-%m-%d')}"
+        )
         
         return jsonify({
             'message': 'Roster entry created successfully',
@@ -195,6 +203,13 @@ def update_roster_entry(roster_id):
                 )
                 db.session.add(new_timesheet)
         
+        # Log activity before committing
+        log_activity(
+            current_user.id,
+            f'{action}_roster',
+            f"Roster entry for {roster_entry.employee.name} {roster_entry.employee.surname} on {roster_entry.date.strftime('%Y-%m-%d')} was {action}d"
+        )
+
         db.session.commit()
         
         return jsonify({

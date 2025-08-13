@@ -3,7 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { Table } from '../components/ui/table';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { timesheetsAPI } from '../lib/api';
+import { timesheetsAPI, api } from '../lib/api'; // Assuming api export exists for direct calls
+import { format } from 'date-fns';
 
 const Timesheets = () => {
   const [timesheets, setTimesheets] = useState([]);
@@ -58,6 +59,25 @@ const Timesheets = () => {
     }
   }
 
+  const handleExportExcel = async () => {
+    try {
+      const params = {
+        start_date: startDate,
+        end_date: endDate,
+      };
+      const res = await api.get('/export/timesheets/excel', { params, responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `timesheets_${format(new Date(), 'yyyyMMdd')}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to export timesheets to Excel", err);
+      // You might want to show an error message to the user
+    }
+  };
+
   return (
     <div>
       <h2>Timesheets</h2>
@@ -69,6 +89,9 @@ const Timesheets = () => {
         </Button>
         <Button onClick={() => handleGenerate('week')} disabled={generating} style={{ marginLeft: 8 }}>
           Generate for Current Week
+        </Button>
+        <Button onClick={handleExportExcel} style={{ marginLeft: 8 }}>
+          Export to Excel
         </Button>
       </div>
       {loading ? (
@@ -96,9 +119,30 @@ const Timesheets = () => {
                   </Badge>
                 </td>
                 <td>
-                  {/* Approve/Reject buttons for admin/manager */}
-                  <Button disabled={ts.status !== 'pending'}>Approve</Button>
-                  <Button disabled={ts.status !== 'pending'}>Reject</Button>
+                  <Button
+                    onClick={async () => {
+                      const params = { start_date: ts.date, end_date: ts.date, employee_id: ts.employee_id };
+                      const res = await api.get('/export/timesheets/pdf', { params, responseType: 'blob' });
+                      const url = window.URL.createObjectURL(new Blob([res.data]));
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `timesheet_${ts.employee.name}_${ts.date}.pdf`;
+                      a.click();
+                      window.URL.revokeObjectURL(url);
+                    }}
+                  >
+                    PDF
+                  </Button>
+                  <Button
+                    style={{ marginLeft: 8 }}
+                    onClick={() => {
+                      const subject = `Timesheet for ${ts.employee.name} - ${ts.date}`;
+                      const body = `Hi ${ts.employee.name},\n\nPlease find your timesheet details for ${ts.date}:\n- Hours Worked: ${ts.hours_worked}\n- Status: ${ts.status}\n\nThanks`;
+                      window.location.href = `mailto:${ts.employee.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    }}
+                  >
+                    Email
+                  </Button>
                 </td>
               </tr>
             ))}

@@ -11,6 +11,9 @@ import {
   Shield,
   Clock,
   FileText,
+  Plane,
+  MessageCircle,
+  LifeBuoy,
   X
 } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -32,6 +35,12 @@ const navigation = [
     name: 'Timesheets',
     href: '/timesheets',
     icon: Clock,
+    roles: ['Admin', 'Manager', 'Employee']
+  },
+  {
+    name: 'Leave',
+    href: '/leave',
+    icon: Plane,
     roles: ['Admin', 'Manager', 'Employee']
   },
   {
@@ -57,6 +66,19 @@ const navigation = [
     href: '/admin',
     icon: Shield,
     roles: ['Admin']
+  },
+  {
+    name: 'Community',
+    href: '/community',
+    icon: MessageCircle,
+    roles: ['Admin', 'Manager', 'Employee']
+  },
+  {
+    name: 'Support',
+    href: 'https://wa.me/1234567890?text=I%20need%20support%20with%20the%20roster%20app.',
+    icon: LifeBuoy,
+    roles: ['Admin', 'Manager', 'Employee'],
+    external: true
   }
 ];
 
@@ -95,18 +117,35 @@ export function Sidebar({ isOpen, onClose }) {
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-2">
             {filteredNavigation.map((item) => {
-              const isActive = location.pathname === item.href;
+              const isActive = !item.external && location.pathname === item.href;
+              const linkClasses = cn(
+                "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                isActive
+                  ? "bg-blue-100 text-blue-700"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              );
+
+              if (item.external) {
+                return (
+                  <a
+                    key={item.name}
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={linkClasses}
+                  >
+                    <item.icon className="mr-3 h-5 w-5" />
+                    {item.name}
+                  </a>
+                );
+              }
+
               return (
                 <Link
                   key={item.name}
                   to={item.href}
                   onClick={onClose}
-                  className={cn(
-                    "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                    isActive
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                  )}
+                  className={linkClasses}
                 >
                   <item.icon className="mr-3 h-5 w-5" />
                   {item.name}

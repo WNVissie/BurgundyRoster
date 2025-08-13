@@ -124,6 +124,42 @@ export const skillsAPI = {
   delete: (id) => api.delete(`/skills/${id}`),
 };
 
+// Licenses API
+export const licensesAPI = {
+  getAll: () => api.get('/licenses'),
+  create: (data) => api.post('/licenses', data),
+  update: (id, data) => api.put(`/licenses/${id}`, data),
+  delete: (id) => api.delete(`/licenses/${id}`),
+};
+
+// Leave API
+export const leaveAPI = {
+  getAll: (params) => api.get('/leave', { params }),
+  create: (data) => api.post('/leave', data),
+  action: (id, data) => api.post(`/leave/${id}/action`, data),
+  delete: (id) => api.delete(`/leave/${id}`),
+};
+
+// Reports API
+export const reportsAPI = {
+  employeeSearch: (params) => api.get('/reports/employee-search', { params }),
+  getEmployeeHistory: (employeeId) => api.get(`/reports/employee-history/${employeeId}`),
+};
+
+// Designations API
+export const designationsAPI = {
+  getAll: () => api.get('/designations'),
+};
+
+// Community API
+export const communityAPI = {
+  getPosts: () => api.get('/community/posts'),
+  getPost: (id) => api.get(`/community/posts/${id}`),
+  createPost: (data) => api.post('/community/posts', data),
+  addReply: (postId, data) => api.post(`/community/posts/${postId}/reply`, data),
+  deletePost: (id) => api.delete(`/community/posts/${id}`),
+};
+
 // Shifts API
 export const shiftsAPI = {
   getAll: () => api.get('/shifts'),

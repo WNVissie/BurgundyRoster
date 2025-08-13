@@ -365,6 +365,28 @@ export function DragDropRoster() {
             <Button onClick={() => fetchData()} variant="outline">
               <RotateCcw className="h-4 w-4 mr-2" /> Refresh
             </Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  const params = {
+                    start_date: format(weekDays[0], 'yyyy-MM-dd'),
+                    end_date: format(weekDays[6], 'yyyy-MM-dd')
+                  };
+                  const res = await api.get('/export/roster/grid/excel', { params, responseType: 'blob' });
+                  const url = window.URL.createObjectURL(new Blob([res.data]));
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `roster_grid_${format(new Date(), 'yyyyMMdd')}.xlsx`;
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                } catch {
+                  setError('Failed to export roster grid to Excel');
+                }
+              }}
+            >
+              Export Grid
+            </Button>
           </div>
         </div>
 

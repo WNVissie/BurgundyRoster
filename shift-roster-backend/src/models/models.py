@@ -371,3 +371,64 @@ class LeaveRequest(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
+class ActivityLog(db.Model):
+    __tablename__ = 'activity_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    action = db.Column(db.String(100), nullable=False)
+    details = db.Column(db.Text, nullable=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='activities')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user': self.user.name + ' ' + self.user.surname if self.user else 'Unknown User',
+            'action': self.action,
+            'details': self.details,
+            'timestamp': self.timestamp.isoformat()
+        }
+
+class CommunityPost(db.Model):
+    __tablename__ = 'community_posts'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    post_type = db.Column(db.String(50), default='Question') # 'Question' or 'Announcement'
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    author = db.relationship('User', backref='community_posts')
+    replies = db.relationship('PostReply', backref='post', lazy='dynamic', cascade='all, delete-orphan')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'author': self.author.to_dict() if self.author else None,
+            'post_type': self.post_type,
+            'title': self.title,
+            'content': self.content,
+            'created_at': self.created_at.isoformat(),
+            'reply_count': self.replies.count()
+        }
+
+class PostReply(db.Model):
+    __tablename__ = 'post_replies'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey('community_posts.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    author = db.relationship('User', backref='post_replies')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'author': self.author.to_dict() if self.author else None,
+            'post_id': self.post_id,
+            'content': self.content,
+            'created_at': self.created_at.isoformat()
+        }

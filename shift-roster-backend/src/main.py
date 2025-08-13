@@ -86,6 +86,9 @@ def create_app():
     from src.routes.timesheets import timesheets_bp
     from src.routes.licenses import licenses_bp
     from src.routes.leave import leave_bp
+    from src.routes.reports import reports_bp
+    from src.routes.designations import designations_bp
+    from src.routes.community import community_bp
 
     # Register blueprints
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
@@ -94,6 +97,8 @@ def create_app():
     app.register_blueprint(admin_bp, url_prefix='/api')
     app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
     app.register_blueprint(export_bp, url_prefix='/api/export')
+    app.register_blueprint(designations_bp, url_prefix='/api/designations')
+    app.register_blueprint(community_bp, url_prefix='/api/community')
     app.register_blueprint(timesheets_bp, url_prefix='/api/timesheets')
     app.register_blueprint(licenses_bp, url_prefix='/api/licenses')
     app.register_blueprint(leave_bp, url_prefix='/api/leave')

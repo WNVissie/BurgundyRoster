@@ -40,7 +40,9 @@ import {
   XCircle,
   Filter,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Mail,
+  MessageSquare
 } from 'lucide-react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, parseISO } from 'date-fns';
 
@@ -57,6 +59,19 @@ function StaticRosterView() {
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [selectedShift, setSelectedShift] = useState('');
   const [selectedRosterDate, setSelectedRosterDate] = useState(new Date());
+  const [selectedShifts, setSelectedShifts] = useState(new Set());
+
+  const handleSelectionChange = (shiftId) => {
+    setSelectedShifts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(shiftId)) {
+        newSet.delete(shiftId);
+      } else {
+        newSet.add(shiftId);
+      }
+      return newSet;
+    });
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -355,26 +370,60 @@ function StaticRosterView() {
                           {shift?.name}
                         </div>
                         
-                        {(isAdmin() || isManager()) && rosterEntry.status === 'pending' && (
-                          <div className="flex space-x-1 mt-2">
+                        <div className="flex items-center justify-between mt-2">
+                          <div className="flex items-center space-x-1">
+                            <Checkbox
+                              id={`select-${rosterEntry.id}`}
+                              checked={selectedShifts.has(rosterEntry.id)}
+                              onCheckedChange={() => handleSelectionChange(rosterEntry.id)}
+                            />
                             <Button
                               size="sm"
-                              variant="outline"
-                              className="h-6 px-2 text-xs border-green-600 text-green-700 hover:bg-green-50"
-                              onClick={() => handleApproval(rosterEntry.id, 'approve')}
+                              variant="ghost"
+                              className="h-6 px-1 text-blue-600 hover:text-blue-700"
+                              onClick={() => {
+                                const phone = employee?.contact_no?.replace(/\D/g, '');
+                                const message = `Hi ${employee?.name}, your shift is: ${shift?.name} on ${format(parseISO(rosterEntry.date), 'MMM d, yyyy')} from ${shift?.start_time} to ${shift?.end_time}.`;
+                                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+                              }}
                             >
-                              ✓
+                              <MessageSquare className="h-4 w-4" />
                             </Button>
                             <Button
                               size="sm"
-                              variant="outline"
-                              className="h-6 px-2 text-xs border-red-600 text-red-700 hover:bg-red-50"
-                              onClick={() => handleApproval(rosterEntry.id, 'reject')}
+                              variant="ghost"
+                              className="h-6 px-1 text-red-600 hover:text-red-700"
+                              onClick={() => {
+                                const subject = `Shift Details for ${format(parseISO(rosterEntry.date), 'MMM d, yyyy')}`;
+                                const body = `Hi ${employee?.name},\n\nYour shift is:\n- Shift: ${shift?.name}\n- Date: ${format(parseISO(rosterEntry.date), 'MMM d, yyyy')}\n- Time: ${shift?.start_time} - ${shift?.end_time}\n\nThanks`;
+                                window.location.href = `mailto:${employee?.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                              }}
                             >
-                              ✗
+                              <Mail className="h-4 w-4" />
                             </Button>
                           </div>
-                        )}
+
+                          {(isAdmin() || isManager()) && rosterEntry.status === 'pending' && (
+                            <div className="flex space-x-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 px-2 text-xs border-green-600 text-green-700 hover:bg-green-50"
+                                onClick={() => handleApproval(rosterEntry.id, 'approve')}
+                              >
+                                ✓
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 px-2 text-xs border-red-600 text-red-700 hover:bg-red-50"
+                                onClick={() => handleApproval(rosterEntry.id, 'reject')}
+                              >
+                                ✗
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -391,6 +440,53 @@ function StaticRosterView() {
           );
         })}
       </div>
+
+      {/* Bulk Actions */}
+      {selectedShifts.size > 0 && (
+        <Card>
+          <CardContent className="p-4 flex items-center justify-between">
+            <p className="text-sm font-medium">{selectedShifts.size} shift(s) selected</p>
+            <div className="flex space-x-2">
+              <Button
+                onClick={() => {
+                  let message = 'Selected Shifts:\n\n';
+                  selectedShifts.forEach(id => {
+                    const r = roster.find(r => r.id === id);
+                    if (r) {
+                      const e = getEmployee(r.employee_id);
+                      const s = getShift(r.shift_id);
+                      message += `- ${e?.name} ${e?.surname}: ${s?.name} on ${format(parseISO(r.date), 'MMM d, yyyy')} (${s?.start_time}-${s?.end_time})\n`;
+                    }
+                  });
+                  navigator.clipboard.writeText(message);
+                  alert('Shift details copied to clipboard!');
+                }}
+              >
+                Copy for WhatsApp
+              </Button>
+              <Button
+                onClick={() => {
+                  const selectedRosterEntries = Array.from(selectedShifts).map(id => roster.find(r => r.id === id)).filter(Boolean);
+                  const employeesToEmail = [...new Set(selectedRosterEntries.map(r => getEmployee(r.employee_id)))];
+                  const emails = employeesToEmail.map(e => e.email).join(',');
+
+                  let body = 'Hi Team,\n\nHere are the selected shift details:\n\n';
+                  selectedRosterEntries.forEach(r => {
+                    const e = getEmployee(r.employee_id);
+                    const s = getShift(r.shift_id);
+                    body += `- ${e?.name} ${e?.surname}: ${s?.name} on ${format(parseISO(r.date), 'MMM d, yyyy')} (${s?.start_time}-${s?.end_time})\n`;
+                  });
+
+                  window.location.href = `mailto:${emails}?subject=Shift Schedule&body=${encodeURIComponent(body)}`;
+                }}
+              >
+                Email Selected
+              </Button>
+              <Button variant="outline" onClick={() => setSelectedShifts(new Set())}>Clear Selection</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
