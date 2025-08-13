@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { employeesAPI, rolesAPI, areasAPI, skillsAPI } from '../lib/api';
+import { employeesAPI, rolesAPI, areasAPI, skillsAPI, licensesAPI } from '../lib/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -94,14 +94,14 @@ export function Employees() {
         rolesAPI.getAll(),
         areasAPI.getAll(),
         skillsAPI.getAll(),
-        employeesAPI.getLicenses()
+        licensesAPI.getAll()
       ]);
       
       setEmployees(employeesRes.data.employees || []);
       setRoles(rolesRes.data.roles || []);
       setAreas(areasRes.data.areas || []);
       setSkills(skillsRes.data.skills || []);
-      setLicenseOptions(licensesRes.data.licenses || []);
+      setLicenseOptions(licensesRes.data || []);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to fetch data');
     } finally {
