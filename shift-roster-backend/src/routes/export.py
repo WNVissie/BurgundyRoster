@@ -70,6 +70,125 @@ def export_employees_csv():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@export_bp.route('/timesheets/excel', methods=['GET'])
+@jwt_required()
+@manager_required
+def export_timesheets_excel():
+    """Export timesheets to Excel format"""
+    try:
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        employee_id = request.args.get('employee_id')
+
+        query = Timesheet.query
+        if start_date:
+            query = query.filter(Timesheet.date >= start_date)
+        if end_date:
+            query = query.filter(Timesheet.date <= end_date)
+        if employee_id:
+            query = query.filter(Timesheet.employee_id == employee_id)
+
+        timesheets = query.all()
+
+        data = []
+        for ts in timesheets:
+            employee = ts.employee
+            shift = ts.roster.shift if ts.roster else None
+            approved_by = ts.timesheet_approver.name if ts.timesheet_approver else 'Pending'
+
+            data.append({
+                'Date': ts.date.strftime('%Y-%m-%d'),
+                'Employee ID': employee.employee_id,
+                'Employee Name': f"{employee.name} {employee.surname}",
+                'Shift': shift.name if shift else 'N/A',
+                'Hours Worked': ts.hours_worked,
+                'Status': ts.status.title(),
+                'Approved By': approved_by
+            })
+
+        df = pd.DataFrame(data)
+        output = io.BytesIO()
+
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Timesheets', index=False)
+            worksheet = writer.sheets['Timesheets']
+            for column in worksheet.columns:
+                max_length = max(df[column.column].astype(str).map(len).max(), len(column.column))
+                worksheet.column_dimensions[column.column_letter].width = max_length + 2
+
+        output.seek(0)
+
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=f'timesheets_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+        )
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@export_bp.route('/roster/grid/excel', methods=['GET'])
+@jwt_required()
+@manager_required
+def export_roster_grid_excel():
+    """Export roster data to an Excel file with a grid layout (employees x days)."""
+    try:
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
+
+        if not start_date_str or not end_date_str:
+            return jsonify({'error': 'start_date and end_date are required'}), 400
+
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+
+        # Fetch all employees and roster entries for the period
+        employees = Employee.query.order_by(Employee.name).all()
+        roster_entries = Roster.query.filter(Roster.date.between(start_date, end_date)).all()
+
+        # Create a map for quick lookup
+        roster_map = {}
+        for entry in roster_entries:
+            key = (entry.employee_id, entry.date)
+            roster_map[key] = entry.shift.name if entry.shift else 'Unknown'
+
+        # Create date range for columns
+        date_range = pd.date_range(start=start_date, end=end_date)
+
+        # Prepare data for DataFrame
+        data = []
+        for emp in employees:
+            row = {'Employee': f"{emp.name} {emp.surname}"}
+            for dt in date_range:
+                shift_name = roster_map.get((emp.id, dt.date()), '')
+                row[dt.strftime('%Y-%m-%d (%a)')] = shift_name
+            data.append(row)
+
+        df = pd.DataFrame(data)
+
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Roster Grid', index=False)
+            worksheet = writer.sheets['Roster Grid']
+            # Adjust column widths
+            for i, col in enumerate(df.columns):
+                column_letter = chr(ord('A') + i)
+                max_len = max(df[col].astype(str).map(len).max(), len(col))
+                worksheet.column_dimensions[column_letter].width = max_len + 2
+
+        output.seek(0)
+
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=f'roster_grid_{start_date_str}_to_{end_date_str}.xlsx'
+        )
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @export_bp.route('/employees/excel', methods=['GET'])
 @jwt_required()
 @manager_required

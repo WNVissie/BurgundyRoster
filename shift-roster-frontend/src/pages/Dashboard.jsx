@@ -21,6 +21,7 @@ export function Dashboard() {
   const { user, isAdmin, isManager } = useAuth();
   const navigate = useNavigate();
   const [metrics, setMetrics] = useState(null);
+  const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -30,6 +31,7 @@ export function Dashboard() {
       if (isAdmin() || isManager()) {
         const response = await analyticsAPI.getDashboard();
         setMetrics(response.data.metrics);
+        setRecentActivity(response.data.recent_activity || []);
       }
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to fetch dashboard data');
@@ -180,44 +182,44 @@ export function Dashboard() {
       )}
 
       {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-          <CardDescription>
-            Latest updates and notifications
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <div className="flex-1">
-                <p className="text-sm font-medium">Shift approved for tomorrow</p>
-                <p className="text-xs text-gray-500">Morning shift - 06:00 to 14:00</p>
-              </div>
-              <span className="text-xs text-gray-500">2 hours ago</span>
+      {(isAdmin() || isManager()) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+            <CardDescription>
+              Latest updates across the system
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {recentActivity.length > 0 ? (
+                recentActivity.map((activity) => {
+                  const Icon = ({ action }) => {
+                    if (action.includes('approve')) return <CheckCircle className="h-5 w-5 text-green-600" />;
+                    if (action.includes('reject')) return <XCircle className="h-5 w-5 text-red-600" />;
+                    if (action.includes('create')) return <Plus className="h-5 w-5 text-blue-600" />;
+                    return <Calendar className="h-5 w-5 text-gray-500" />;
+                  };
+                  return (
+                    <div key={activity.id} className="flex items-center space-x-3">
+                      <Icon action={activity.action} />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{activity.details}</p>
+                        <p className="text-xs text-gray-500">{activity.user}</p>
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {new Date(activity.timestamp).toLocaleString()}
+                      </span>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-sm text-gray-500">No recent activities to display.</p>
+              )}
             </div>
-
-            <div className="flex items-center space-x-3">
-              <AlertCircle className="h-5 w-5 text-yellow-600" />
-              <div className="flex-1">
-                <p className="text-sm font-medium">Timesheet pending approval</p>
-                <p className="text-xs text-gray-500">Week ending {new Date().toLocaleDateString()}</p>
-              </div>
-              <span className="text-xs text-gray-500">1 day ago</span>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <Calendar className="h-5 w-5 text-blue-600" />
-              <div className="flex-1">
-                <p className="text-sm font-medium">New shift schedule published</p>
-                <p className="text-xs text-gray-500">Next week's roster is now available</p>
-              </div>
-              <span className="text-xs text-gray-500">3 days ago</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick Links */}
       <Card>

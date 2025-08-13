@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
-from src.models.models import db, User, ShiftRoster, Shift, Role, AreaOfResponsibility, Skill, LeaveRequest
+from src.models.models import db, User, ShiftRoster, Shift, Role, AreaOfResponsibility, Skill, LeaveRequest, ActivityLog
 from src.utils.decorators import get_current_user
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, or_
@@ -74,6 +74,9 @@ def get_dashboard_metrics():
                 ShiftRoster.status == 'approved'
             )
         ).scalar() or 0
+
+        # Get recent activities
+        recent_activities = ActivityLog.query.order_by(ActivityLog.timestamp.desc()).limit(5).all()
         
         return jsonify({
             'date_range': {
@@ -87,7 +90,8 @@ def get_dashboard_metrics():
                 'available_employees': max(0, available_employees),
                 'pending_approvals': pending_rosters,
                 'total_scheduled_hours': float(total_hours)
-            }
+            },
+            'recent_activity': [activity.to_dict() for activity in recent_activities]
         }), 200
         
     except Exception as e:

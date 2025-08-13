@@ -113,7 +113,7 @@ def create_employee():
             contact_no=data.get('contact_no'),
             alt_contact_name=data.get('alt_contact_name'),
             alt_contact_no=data.get('alt_contact_no'),
-            designation=data.get('designation'),
+            designation_id=data.get('designation_id'),
             role_id=data['role_id'],
             area_of_responsibility_id=data.get('area_of_responsibility_id')
         )
@@ -170,7 +170,7 @@ def update_employee(employee_id):
         
         # Admin can update all fields
         if current_user.role_ref.name == 'Admin':
-            allowed_fields = ['email', 'name', 'surname', 'employee_id', 'contact_no', 'alt_contact_name', 'alt_contact_no', 'licenses', 'designation', 'role_id', 'area_of_responsibility_id']
+            allowed_fields = ['email', 'name', 'surname', 'employee_id', 'contact_no', 'alt_contact_name', 'alt_contact_no', 'licenses', 'designation_id', 'role_id', 'area_of_responsibility_id']
         # Users can only update their own contact info
         elif current_user.id == employee_id:
             allowed_fields = ['contact_no']

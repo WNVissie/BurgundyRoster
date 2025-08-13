@@ -10,6 +10,8 @@ import { Dashboard } from './pages/Dashboard';
 import { Employees } from './pages/Employees';
 import { Roster } from './pages/Roster';
 import { Admin } from './pages/Admin';
+import { Leave } from './pages/Leave';
+import { Community } from './pages/Community';
 import './App.css';
 
 // Create a client
@@ -71,6 +73,14 @@ function App() {
               </ProtectedRoute>
             } />
             
+            <Route path="/leave" element={
+              <ProtectedRoute>
+                <Layout>
+                  <Leave />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
             <Route path="/analytics" element={
               <ProtectedRoute requiredPermission="view_analytics">
                 <Layout>
@@ -91,6 +101,14 @@ function App() {
               <ProtectedRoute requiredRole="Admin">
                 <Layout>
                   <Admin />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/community" element={
+              <ProtectedRoute>
+                <Layout>
+                  <Community />
                 </Layout>
               </ProtectedRoute>
             } />
