@@ -8,7 +8,9 @@ import { DragDropRoster } from '../components/roster/DragDropRoster';
 
 
 const Timesheets = () => {
-  const { user, isEmployee } = useAuth();
+  const { user, isEmployee, isAdmin, isManager } = useAuth();
+  console.log('User:', user);
+  console.log('isEmployee:', isEmployee());
   const [timesheets, setTimesheets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState('');
@@ -81,6 +83,8 @@ const Timesheets = () => {
     }
   };
 
+  console.log('Timesheets:', timesheets);
+
   return (
     <div>
       <h2>Timesheets</h2>
@@ -101,19 +105,10 @@ const Timesheets = () => {
         <div>Loading...</div>
       ) : (
         <>
-          {isEmployee() ? (
-            <TraditionalShiftView
-              shifts={timesheets.filter(shift => shift.employee_id === user.id)}
-              onAccept={async (shiftId) => {
-                await timesheetsAPI.accept(shiftId);
-                await fetchTimesheets();
-              }}
-            />
+          {(isAdmin() || isManager()) ? (
+            <TraditionalShiftView shifts={timesheets} />
           ) : (
-            <>
-              <DragDropRoster shifts={timesheets} />
-              <TraditionalShiftView shifts={timesheets} />
-            </>
+            <TraditionalShiftView shifts={timesheets.filter(shift => shift.employee_id === user.id)} />
           )}
         </>
       )}
@@ -121,14 +116,33 @@ const Timesheets = () => {
   );
 };
 
-const TraditionalShiftView = ({ shifts, onAccept }) => {
+const TraditionalShiftView = ({ shifts }) => {
   return (
-    <div>
-      {shifts.map(shift => (
-        <div key={shift.id}>
-          {/* ...shift details... */}
-        </div>
-      ))}
+    <div style={{ marginTop: 24 }}>
+      {shifts.length === 0 ? (
+        <div>No timesheets found.</div>
+      ) : (
+        <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+          <thead>
+            <tr style={{ background: '#f3f4f6' }}>
+              <th style={{ padding: '10px', borderBottom: '1px solid #eee', textAlign: 'left' }}>Date</th>
+              <th style={{ padding: '10px', borderBottom: '1px solid #eee', textAlign: 'left' }}>Employee</th>
+              <th style={{ padding: '10px', borderBottom: '1px solid #eee', textAlign: 'left' }}>Hours Worked</th>
+              <th style={{ padding: '10px', borderBottom: '1px solid #eee', textAlign: 'left' }}>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {shifts.map(shift => (
+              <tr key={shift.id}>
+                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{shift.date}</td>
+                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{shift.employee_name} {shift.employee_surname}</td>
+                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{shift.hours_worked ?? shift.hours ?? ''}</td>
+                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{shift.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 };

@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from datetime import datetime
-from src.models.models import db, Timesheet, ShiftRoster
+from src.models.models import db, Timesheet, ShiftRoster, User
 from src.utils.decorators import get_current_user
 
 timesheets_bp = Blueprint('timesheets', __name__)
@@ -9,12 +9,12 @@ timesheets_bp = Blueprint('timesheets', __name__)
 # GET endpoint to fetch timesheets
 @timesheets_bp.route('', methods=['GET'])
 def get_timesheets():
-    """Fetch timesheets, optionally filtered by date range and/or employee."""
+    """Fetch timesheets, optionally filtered by date range and/or employee, with employee name/surname."""
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
     employee_id = request.args.get('employee_id')
 
-    query = Timesheet.query
+    query = db.session.query(Timesheet, User).join(User, Timesheet.employee_id == User.id)
     if employee_id:
         query = query.filter(Timesheet.employee_id == int(employee_id))
 
@@ -31,8 +31,14 @@ def get_timesheets():
         except ValueError:
             return jsonify({'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
 
-    timesheets = query.order_by(Timesheet.date.desc()).all()
-    return jsonify([ts.to_dict() for ts in timesheets]), 200
+    results = query.order_by(Timesheet.date.desc()).all()
+    timesheets = []
+    for ts, user in results:
+        ts_dict = ts.to_dict()
+        ts_dict['employee_name'] = user.name
+        ts_dict['employee_surname'] = user.surname
+        timesheets.append(ts_dict)
+    return jsonify(timesheets), 200
 
 @timesheets_bp.route('/generate', methods=['POST'])
 def generate_timesheets():

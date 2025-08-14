@@ -607,6 +607,18 @@ function StaticRosterView() {
   );
 }
 
+const TraditionalShiftView = ({ shifts }) => {
+  return (
+    <div>
+      {shifts.map(shift => (
+        <div key={shift.id}>
+          {/* ...shift details... */}
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export function Roster() {
   return (
     <div className="space-y-6">
