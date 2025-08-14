@@ -384,3 +384,23 @@ def create_bulk_roster():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@roster_bp.route('/<int:roster_id>/accept', methods=['POST'])
+@jwt_required()
+def accept_roster_entry(roster_id):
+    """Employee accepts their assigned shift"""
+    try:
+        current_user = get_current_user()
+        roster_entry = ShiftRoster.query.get(roster_id)
+        if not roster_entry:
+            return jsonify({'error': 'Roster entry not found'}), 404
+        # Only the assigned employee can accept
+        if roster_entry.employee_id != current_user.id:
+            return jsonify({'error': 'Not authorized'}), 403
+        roster_entry.status = 'accepted'
+        roster_entry.accepted_at = datetime.utcnow()  # <-- Add this line
+        db.session.commit()
+        return jsonify({'message': 'Shift accepted', 'roster_entry': roster_entry.to_dict()}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+

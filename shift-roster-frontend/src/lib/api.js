@@ -165,6 +165,7 @@ export const shiftsAPI = {
   create: (data) => api.post('/shifts', data),
   update: (id, data) => api.put(`/shifts/${id}`, data),
   delete: (id) => api.delete(`/shifts/${id}`),
+  accept: (id) => api.post(`/shifts/${id}/accept`),
 };
 
 // Roster API
@@ -195,6 +196,7 @@ export const timesheetsAPI = {
   getAll: () => api.get('/timesheets'),
   approve: (id) => api.post(`/timesheets/${id}/approve`),
   reject: (id) => api.post(`/timesheets/${id}/reject`),
+  accept: (id) => api.post(`/timesheets/${id}/accept`),
 };
 
 export default api;

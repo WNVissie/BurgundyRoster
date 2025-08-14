@@ -3,8 +3,12 @@ import { Table } from '../components/ui/table';
 import { Button } from '../components/ui/button';
 import api, { timesheetsAPI } from '../lib/api';
 import { format } from 'date-fns';
+import { useAuth } from '../contexts/AuthContext';
+import { DragDropRoster } from '../components/roster/DragDropRoster';
+
 
 const Timesheets = () => {
+  const { user, isEmployee } = useAuth();
   const [timesheets, setTimesheets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState('');
@@ -96,105 +100,43 @@ const Timesheets = () => {
       {loading ? (
         <div>Loading...</div>
       ) : (
-        <Table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Employee</th>
-              <th>Hours Worked</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {timesheets.map(ts => (
-              <tr key={ts.id}>
-                <td>{ts.date}</td>
-                <td>{ts.employee?.name} {ts.employee?.surname}</td>
-                <td>{ts.hours_worked}</td>
-                <td>
-                  <span
-                    style={{
-                      padding: '4px 12px',
-                      borderRadius: '12px',
-                      color: '#fff',
-                      backgroundColor:
-                        ts.status === 'approved'
-                          ? '#4caf50' // green
-                          : ts.status === 'pending'
-                          ? '#ff9800' // amber
-                          : ts.status === 'rejected'
-                          ? '#f44336' // red
-                          : '#757575', // default grey
-                      fontWeight: 'bold',
-                      textTransform: 'lowercase'
-                    }}
-                  >
-                    {ts.status}
-                  </span>
-                </td>
-                <td>
-                  <Button
-                    onClick={async () => {
-                      const params = { start_date: ts.date, end_date: ts.date, employee_id: ts.employee_id };
-                      const res = await api.get('/export/timesheets/pdf', { params, responseType: 'blob' });
-                      const url = window.URL.createObjectURL(new Blob([res.data]));
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `timesheet_${ts.employee.name}_${ts.date}.pdf`;
-                      a.click();
-                      window.URL.revokeObjectURL(url);
-                    }}
-                  >
-                    PDF
-                  </Button>
-                  <Button
-                    style={{ marginLeft: 8 }}
-                    onClick={() => {
-                      const subject = `Timesheet for ${ts.employee.name} - ${ts.date}`;
-                      const body = `Hi ${ts.employee.name},\n\nPlease find your timesheet details for ${ts.date}:\n- Hours Worked: ${ts.hours_worked}\n- Status: ${ts.status}\n\nThanks`;
-                      window.location.href = `mailto:${ts.employee.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                    }}
-                  >
-                    Email
-                  </Button>
-                  <Button
-                    style={{
-                      marginLeft: 8,
-                      backgroundColor: ts.status === 'approved' ? '#4caf50' : '#e0e0e0', // Green if approved
-                      color: ts.status === 'approved' ? '#fff' : '#000',
-                      border: 'none'
-                    }}
-                    onClick={async () => {
-                      await timesheetsAPI.approve(ts.id);
-                      await fetchTimesheets();
-                    }}
-                    disabled={ts.status === 'approved' || ts.status === 'rejected'}
-                  >
-                    Approve
-                  </Button>
-                  <Button
-                    style={{
-                      marginLeft: 8,
-                      backgroundColor: ts.status === 'rejected' ? '#f44336' : '#e0e0e0', // Red if rejected
-                      color: ts.status === 'rejected' ? '#fff' : '#000',
-                      border: 'none'
-                    }}
-                    onClick={async () => {
-                      await timesheetsAPI.reject(ts.id);
-                      await fetchTimesheets();
-                    }}
-                    disabled={ts.status === 'rejected' || ts.status === 'approved'}
-                  >
-                    Reject
-                  </Button>
-                
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        <>
+          {isEmployee() ? (
+            <TraditionalShiftView
+              shifts={timesheets.filter(shift => shift.employee_id === user.id)}
+              onAccept={async (shiftId) => {
+                await timesheetsAPI.accept(shiftId);
+                await fetchTimesheets();
+              }}
+            />
+          ) : (
+            <>
+              <DragDropRoster shifts={timesheets} />
+              <TraditionalShiftView shifts={timesheets} />
+            </>
+          )}
+        </>
       )}
+    </div>
+  );
+};
+
+const TraditionalShiftView = ({ shifts, onAccept }) => {
+  return (
+    <div>
+      {shifts.map(shift => (
+        <div key={shift.id}>
+          {/* ...shift details... */}
+          {shift.status === 'pending' && (
+            <Button
+              onClick={() => onAccept(shift.id)}
+              disabled={shift.status === 'accepted'}
+            >
+              Accept
+            </Button>
+          )}
+        </div>
+      ))}
     </div>
   );
 };

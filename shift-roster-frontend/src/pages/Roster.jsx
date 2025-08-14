@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { DragDropRoster } from '../components/roster/DragDropRoster';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
@@ -48,7 +48,7 @@ import {
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, parseISO } from 'date-fns';
 
 function StaticRosterView() {
-  const { isAdmin, isManager } = useAuth();
+  const { isAdmin, isManager, isEmployee, user } = useAuth();
   const [roster, setRoster] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [shifts, setShifts] = useState([]);
@@ -424,6 +424,21 @@ function StaticRosterView() {
                               </Button>
                             </div>
                           )}
+
+                          {/* Accept button for employees on their own pending shifts */}
+                          {isEmployee() && rosterEntry.employee_id === user.id && rosterEntry.status === 'pending' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-6 px-2 text-xs border-green-600 text-green-700 hover:bg-green-50"
+                              onClick={async () => {
+                                await rosterAPI.accept(rosterEntry.id);
+                                fetchData();
+                              }}
+                            >
+                              Accept
+                            </Button>
+                          )}
                         </div>
                       </div>
                     );
@@ -547,6 +562,47 @@ function StaticRosterView() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Employee-specific shift view */}
+      {isEmployee() && (
+        <div className="mt-6">
+          <h2 className="text-xl font-semibold mb-4">My Shifts</h2>
+          
+          {shifts
+            .filter(shift => isEmployee() ? shift.employee_id === user.id : true)
+            .map(shift => (
+              <div key={shift.id} className="flex items-center justify-between p-3 rounded-md border mb-2"
+                style={{
+                  backgroundColor: shift.status === 'accepted' ? '#e8f5e9' : '#f3f4f6'
+                }}
+              >
+                <div>
+                  <div className="text-sm font-medium">
+                    {shift.date} - {shift.employee_name}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {shift.start_time} - {shift.end_time} • {shift.hours}h
+                  </div>
+                </div>
+                
+                <Button
+                  style={{
+                    backgroundColor: shift.status === 'accepted' ? '#4caf50' : '#e0e0e0',
+                    color: shift.status === 'accepted' ? '#fff' : '#000',
+                    border: 'none'
+                  }}
+                  onClick={async () => {
+                    await shiftsAPI.accept(shift.id);
+                    await fetchData();
+                  }}
+                  disabled={shift.status === 'accepted'}
+                >
+                  {shift.status === 'accepted' ? 'Accepted' : 'Accept'}
+                </Button>
+              </div>
+            ))}
+        </div>
+      )}
     </div>
   );
 }
