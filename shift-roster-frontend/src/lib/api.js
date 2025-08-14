@@ -193,6 +193,8 @@ export const analyticsAPI = {
 export const timesheetsAPI = {
   generate: (payload) => api.post('/timesheets/generate', payload),
   getAll: () => api.get('/timesheets'),
+  approve: (id) => api.post(`/timesheets/${id}/approve`),
+  reject: (id) => api.post(`/timesheets/${id}/reject`),
 };
 
 export default api;

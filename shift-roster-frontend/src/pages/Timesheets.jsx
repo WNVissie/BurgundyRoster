@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table } from '../components/ui/table';
 import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
 import api, { timesheetsAPI } from '../lib/api';
 import { format } from 'date-fns';
 
@@ -114,9 +113,25 @@ const Timesheets = () => {
                 <td>{ts.employee?.name} {ts.employee?.surname}</td>
                 <td>{ts.hours_worked}</td>
                 <td>
-                  <Badge color={ts.status === 'approved' ? 'green' : ts.status === 'pending' ? 'yellow' : 'red'}>
+                  <span
+                    style={{
+                      padding: '4px 12px',
+                      borderRadius: '12px',
+                      color: '#fff',
+                      backgroundColor:
+                        ts.status === 'approved'
+                          ? '#4caf50' // green
+                          : ts.status === 'pending'
+                          ? '#ff9800' // amber
+                          : ts.status === 'rejected'
+                          ? '#f44336' // red
+                          : '#757575', // default grey
+                      fontWeight: 'bold',
+                      textTransform: 'lowercase'
+                    }}
+                  >
                     {ts.status}
-                  </Badge>
+                  </span>
                 </td>
                 <td>
                   <Button
@@ -144,25 +159,36 @@ const Timesheets = () => {
                     Email
                   </Button>
                   <Button
-                    style={{ marginLeft: 8 }}
+                    style={{
+                      marginLeft: 8,
+                      backgroundColor: ts.status === 'approved' ? '#4caf50' : '#e0e0e0', // Green if approved
+                      color: ts.status === 'approved' ? '#fff' : '#000',
+                      border: 'none'
+                    }}
                     onClick={async () => {
                       await timesheetsAPI.approve(ts.id);
                       await fetchTimesheets();
                     }}
-                    disabled={ts.status === 'approved'}
+                    disabled={ts.status === 'approved' || ts.status === 'rejected'}
                   >
                     Approve
                   </Button>
                   <Button
-                    style={{ marginLeft: 8 }}
+                    style={{
+                      marginLeft: 8,
+                      backgroundColor: ts.status === 'rejected' ? '#f44336' : '#e0e0e0', // Red if rejected
+                      color: ts.status === 'rejected' ? '#fff' : '#000',
+                      border: 'none'
+                    }}
                     onClick={async () => {
-                      await timesheetsAPI.accept(ts.id);
+                      await timesheetsAPI.reject(ts.id);
                       await fetchTimesheets();
                     }}
-                    disabled={ts.status === 'accepted'}
+                    disabled={ts.status === 'rejected' || ts.status === 'approved'}
                   >
-                    Accept
+                    Reject
                   </Button>
+                
                 </td>
               </tr>
             ))}

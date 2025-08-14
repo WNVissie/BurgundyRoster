@@ -86,3 +86,36 @@ def generate_timesheets():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+@timesheets_bp.route('/<int:id>/approve', methods=['POST'])
+@jwt_required()
+def approve_timesheet(id):
+    """Approve a timesheet by ID."""
+    ts = Timesheet.query.get(id)
+    if not ts:
+        return jsonify({'error': 'Timesheet not found'}), 404
+    ts.status = 'approved'
+    db.session.commit()
+    return jsonify({'message': 'Timesheet approved', 'timesheet': ts.to_dict()}), 200
+
+@timesheets_bp.route('/<int:id>/accept', methods=['POST'])
+@jwt_required()
+def accept_timesheet(id):
+    """Employee accepts a timesheet by ID."""
+    ts = Timesheet.query.get(id)
+    if not ts:
+        return jsonify({'error': 'Timesheet not found'}), 404
+    ts.status = 'accepted'
+    db.session.commit()
+    return jsonify({'message': 'Timesheet accepted', 'timesheet': ts.to_dict()}), 200
+
+@timesheets_bp.route('/<int:id>/reject', methods=['POST'])
+@jwt_required()
+def reject_timesheet(id):
+    """Reject a timesheet by ID."""
+    ts = Timesheet.query.get(id)
+    if not ts:
+        return jsonify({'error': 'Timesheet not found'}), 404
+    ts.status = 'rejected'
+    db.session.commit()
+    return jsonify({'message': 'Timesheet rejected', 'timesheet': ts.to_dict()}), 200
