@@ -47,6 +47,10 @@ export function Leave() {
     end_date: '',
     reason: '',
   });
+  const [showModal, setShowModal] = useState(false);
+  const [actionType, setActionType] = useState('');
+  const [comment, setComment] = useState('');
+  const [selectedLeaveId, setSelectedLeaveId] = useState(null);
 
   const isManager = useMemo(() => user?.role?.name === 'Admin' || user?.role?.name === 'Manager', [user]);
 
@@ -97,6 +101,19 @@ export function Leave() {
       setError(err.response?.data?.error || 'Failed to delete leave request');
     }
   }
+
+  const handleActionClick = (leaveId, type) => {
+    setSelectedLeaveId(leaveId);
+    setActionType(type);
+    setShowModal(true);
+  };
+
+  const handleConfirmAction = async () => {
+    await leaveAPI.action(selectedLeaveId, { action: actionType, action_comment: comment });
+    setShowModal(false);
+    setComment('');
+    fetchLeaveRequests();
+  };
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -217,6 +234,7 @@ export function Leave() {
                 <TableHead>Days</TableHead>
                 <TableHead>Reason</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Action Comment</TableHead> {/* Add this line */}
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -231,14 +249,15 @@ export function Leave() {
                   <TableCell>{req.days}</TableCell>
                   <TableCell className="max-w-xs truncate">{req.reason}</TableCell>
                   <TableCell>{getStatusBadge(req.status)}</TableCell>
+                  <TableCell>{req.action_comment || ''}</TableCell> {/* Add this line */}
                   <TableCell>
                     <div className="flex space-x-1">
                       {isManager && req.status === 'pending' && (
                         <>
-                          <Button variant="ghost" size="sm" className="text-green-600 hover:text-green-700" onClick={() => handleAction(req.id, 'approve')}>
+                          <Button variant="ghost" size="sm" className="text-green-600 hover:text-green-700" onClick={() => handleActionClick(req.id, 'approve')}>
                             <Check className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => handleAction(req.id, 'reject')}>
+                          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => handleActionClick(req.id, 'reject')}>
                             <X className="h-4 w-4" />
                           </Button>
                         </>
@@ -256,6 +275,32 @@ export function Leave() {
           </Table>
         </CardContent>
       </Card>
+      {showModal && (
+        <Dialog open={showModal} onOpenChange={setShowModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{actionType === 'approve' ? 'Approve' : 'Reject'} Leave</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <Textarea
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+                placeholder="Add a comment (optional)"
+                rows={4}
+                style={{ width: '100%' }}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowModal(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleConfirmAction}>
+                Confirm
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

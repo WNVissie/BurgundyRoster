@@ -93,6 +93,9 @@ def action_leave_request(request_id):
         leave_request.approved_by = current_user.id
         leave_request.approved_at = datetime.utcnow()
 
+        # New field action_comment
+        leave_request.action_comment = data.get('action_comment', '')
+
         db.session.commit()
 
         return jsonify(leave_request.to_dict()), 200

@@ -326,7 +326,7 @@ class Timesheet(db.Model):
 
 class LeaveRequest(db.Model):
     __tablename__ = 'leave_requests'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     employee_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     leave_type = db.Column(db.String(20), nullable=False)  # paid, unpaid, sick
@@ -338,11 +338,12 @@ class LeaveRequest(db.Model):
     approved_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     approved_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+    action_comment = db.Column(db.String(255))  # <-- Add this line
+
     # Relationships
     employee = db.relationship('User', foreign_keys=[employee_id], backref='leave_requests')
     approver = db.relationship('User', foreign_keys=[approved_by], backref='approved_leaves')
-    
+
     def __repr__(self):
         return f'<LeaveRequest {self.employee.name} - {self.leave_type} - {self.start_date}>'
     
@@ -369,7 +370,8 @@ class LeaveRequest(db.Model):
                 'surname': self.approver.surname
             } if self.approver else None,
             'approved_at': self.approved_at.isoformat() if self.approved_at else None,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'action_comment': self.action_comment
         }
 
 class ActivityLog(db.Model):
