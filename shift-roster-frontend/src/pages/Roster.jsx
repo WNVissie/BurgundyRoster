@@ -620,9 +620,10 @@ const TraditionalShiftView = ({ shifts }) => {
 };
 
 export function Roster() {
+  const { isAdmin, isManager, isEmployee } = useAuth();
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Shift Roster</h1>
@@ -631,26 +632,29 @@ export function Roster() {
       </div>
 
       {/* Tabs for different views */}
-      <Tabs defaultValue="drag-drop" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="drag-drop" className="flex items-center">
-            <Grip className="h-4 w-4 mr-2" />
-            Drag & Drop
-          </TabsTrigger>
-          <TabsTrigger value="traditional" className="flex items-center">
-            <List className="h-4 w-4 mr-2" />
-            Traditional View
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="drag-drop" className="mt-6">
-          <DragDropRoster />
-        </TabsContent>
-        
-        <TabsContent value="traditional" className="mt-6">
-          <StaticRosterView />
-        </TabsContent>
-      </Tabs>
+      {(isAdmin() || isManager()) ? (
+        <Tabs defaultValue="drag-drop" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="drag-drop" className="flex items-center">
+              <Grip className="h-4 w-4 mr-2" />
+              Drag & Drop
+            </TabsTrigger>
+            <TabsTrigger value="traditional" className="flex items-center">
+              <List className="h-4 w-4 mr-2" />
+              Traditional View
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="drag-drop" className="mt-6">
+            <DragDropRoster />
+          </TabsContent>
+          <TabsContent value="traditional" className="mt-6">
+            <StaticRosterView />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        // Employees only see traditional view
+        <StaticRosterView />
+      )}
     </div>
   );
 }

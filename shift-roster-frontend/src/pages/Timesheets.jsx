@@ -24,13 +24,16 @@ const Timesheets = () => {
   async function fetchTimesheets() {
     setLoading(true);
     try {
-      const res = await timesheetsAPI.getAll();
-      console.log('Timesheets API response:', res.data);
+      const params = {};
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
+      const res = await timesheetsAPI.getAll(params);
       setTimesheets(res.data || []);
-    } catch {
+    } catch (e) {
       setTimesheets([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   function getCurrentWeek() {
@@ -91,7 +94,10 @@ const Timesheets = () => {
       <div style={{ marginBottom: 16 }}>
         <label>Start Date: <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
         <label style={{ marginLeft: 8 }}>End Date: <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} /></label>
-        <Button onClick={() => handleGenerate('custom')} disabled={!startDate || !endDate || generating} style={{ marginLeft: 8 }}>
+        <Button
+          onClick={() => handleGenerate('custom')}
+          disabled={!startDate || !endDate || generating}
+        >
           Generate for Period
         </Button>
         <Button onClick={() => handleGenerate('week')} disabled={generating} style={{ marginLeft: 8 }}>
