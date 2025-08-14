@@ -127,14 +127,6 @@ const TraditionalShiftView = ({ shifts, onAccept }) => {
       {shifts.map(shift => (
         <div key={shift.id}>
           {/* ...shift details... */}
-          {shift.status === 'pending' && (
-            <Button
-              onClick={() => onAccept(shift.id)}
-              disabled={shift.status === 'accepted'}
-            >
-              Accept
-            </Button>
-          )}
         </div>
       ))}
     </div>

@@ -176,6 +176,7 @@ export const rosterAPI = {
   delete: (id) => api.delete(`/roster/${id}`),
   approve: (id, data) => api.post(`/roster/${id}/approve`, data),
   createBulk: (data) => api.post('/roster/bulk', data),
+  accept: (id) => api.post(`/roster/${id}/accept`),
 };
 
 // Analytics API

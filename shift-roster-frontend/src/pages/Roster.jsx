@@ -426,7 +426,7 @@ function StaticRosterView() {
                           )}
 
                           {/* Accept button for employees on their own pending shifts */}
-                          {isEmployee() && rosterEntry.employee_id === user.id && rosterEntry.status === 'pending' && (
+                          {isEmployee() && rosterEntry.employee_id === user.id && rosterEntry.status === 'approved' && !rosterEntry.accepted_at && (
                             <Button
                               size="sm"
                               variant="outline"
