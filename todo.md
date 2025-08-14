@@ -1,4 +1,25 @@
-## Next session (2025-08-11): Bugfixes and features
+	- [ ] Look at adding dockworker logs for fuel consumption based on employee ID and vehicle
+	- [ ] Add option to upload a document for leave (e.g., medical certificate)
+	- [ ] Add additional leave types
+## Next session (2025-08-13): Bugfixes and features
+
+### To Do for Tomorrow
+
+	- [ ] Add reports (employee history, etc)
+	- [ ] Check licenses (Admin - get licenses?)
+	- [ ] Check why timesheets are not generating
+	- [ ] Check that recent activity pulls through
+	- [ ] Test employee user
+	- [ ] Add leave to employee automatically when leave is approved (in roster?)
+	- [ ] Analytics: Employees by area not showing
+	- [ ] Analytics: Shifts analysis not showing
+	- [ ] Analytics: How performance is calculated
+	- [ ] Analytics: Skills distribution pulled through?
+	- [ ] Analytics: Designation calling designations table
+	- [ ] Employee form: Rates not showing
+	- [ ] Test community: add functionality for Q&A and to add Q&A answered in community notice board
+	- [ ] Test support: set up
+	- [ ] Test multiple sending to WhatsApp and email
 
 	- [ ] Add registration page for new employees (manual signup with company email and password).
 	- [ ] Support login with both company email/password and Google OAuth.

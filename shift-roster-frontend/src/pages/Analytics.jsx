@@ -72,10 +72,12 @@ export function Analytics() {
     end: format(endOfMonth(new Date()), 'yyyy-MM-dd')
   });
   const [selectedPeriod, setSelectedPeriod] = useState('month');
+  const [skillDistribution, setSkillDistribution] = useState([]);
 
   useEffect(() => {
     fetchAnalytics();
-  }, [dateRange]); // fetchAnalytics is stable
+    fetchSkillDistribution();
+  }, [dateRange]);
 
   const fetchAnalytics = async () => {
       // Fetch weekly approval trends
@@ -153,6 +155,18 @@ export function Analytics() {
     }
   };
 
+  const fetchSkillDistribution = async () => {
+    try {
+      const res = await analyticsAPI.skillSearch({
+        start_date: dateRange.start,
+        end_date: dateRange.end
+      });
+      setSkillDistribution(res.data.data || []);
+    } catch (err) {
+      setSkillDistribution([]);
+    }
+  };
+
   const handlePeriodChange = (period) => {
     setSelectedPeriod(period);
     const now = new Date();
@@ -203,8 +217,6 @@ export function Analytics() {
   // shiftUtilization now comes from backend
 
   // weeklyTrends now comes from backend
-
-  const skillDistribution = [];
 
   return (
     <div className="space-y-6">

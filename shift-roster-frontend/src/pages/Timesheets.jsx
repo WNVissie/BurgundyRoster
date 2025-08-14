@@ -1,9 +1,8 @@
-
 import React, { useEffect, useState } from 'react';
 import { Table } from '../components/ui/table';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { timesheetsAPI, api } from '../lib/api'; // Assuming api export exists for direct calls
+import api, { timesheetsAPI } from '../lib/api';
 import { format } from 'date-fns';
 
 const Timesheets = () => {
@@ -20,8 +19,9 @@ const Timesheets = () => {
   async function fetchTimesheets() {
     setLoading(true);
     try {
-  const res = await timesheetsAPI.getAll();
-      setTimesheets(res.data.data || []);
+      const res = await timesheetsAPI.getAll();
+      console.log('Timesheets API response:', res.data);
+      setTimesheets(res.data || []);
     } catch {
       setTimesheets([]);
     }
@@ -52,7 +52,7 @@ const Timesheets = () => {
       payload = { start_date: startDate, end_date: endDate };
     }
     try {
-  await timesheetsAPI.generate(payload);
+      await timesheetsAPI.generate(payload);
       await fetchTimesheets();
     } finally {
       setGenerating(false);
@@ -142,6 +142,26 @@ const Timesheets = () => {
                     }}
                   >
                     Email
+                  </Button>
+                  <Button
+                    style={{ marginLeft: 8 }}
+                    onClick={async () => {
+                      await timesheetsAPI.approve(ts.id);
+                      await fetchTimesheets();
+                    }}
+                    disabled={ts.status === 'approved'}
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    style={{ marginLeft: 8 }}
+                    onClick={async () => {
+                      await timesheetsAPI.accept(ts.id);
+                      await fetchTimesheets();
+                    }}
+                    disabled={ts.status === 'accepted'}
+                  >
+                    Accept
                   </Button>
                 </td>
               </tr>

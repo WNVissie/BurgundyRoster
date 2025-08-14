@@ -10,6 +10,9 @@ from flask_jwt_extended import JWTManager
 from src.models.models import db
 from src.routes.user import user_bp
 from src.config import config
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 def create_app():
     # Load env vars from .env if present (dev convenience)
@@ -18,7 +21,9 @@ def create_app():
     
     # Load configuration
     app.config.from_object(config['development'])
-    
+    app.config['DEBUG'] = True
+    app.config['PROPAGATE_EXCEPTIONS'] = True
+
     # Initialize extensions
     db.init_app(app)
     jwt = JWTManager(app)
@@ -71,7 +76,7 @@ def create_app():
         return jsonify({'error': 'Fresh token required'}), 401
     
     # Configure CORS to be specific to API routes, preventing conflicts with static file serving.
-    CORS(app, resources={r"/api/*": {"origins": app.config['CORS_ORIGINS']}}, supports_credentials=True)
+    CORS(app, supports_credentials=True)
     
     # Register blueprints
     # Note: user_bp is obsolete and has been removed to avoid conflicts.
@@ -154,6 +159,13 @@ def create_app():
     def ping():
         return 'pong'
     
+    @app.errorhandler(Exception)
+    def handle_exception(e):
+        import traceback
+        print("Exception occurred:", e)
+        traceback.print_exc()
+        return {"error": str(e)}, 500
+
     return app
 
 app = create_app()

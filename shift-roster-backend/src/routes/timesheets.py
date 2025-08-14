@@ -10,32 +10,29 @@ timesheets_bp = Blueprint('timesheets', __name__)
 @timesheets_bp.route('', methods=['GET'])
 def get_timesheets():
     """Fetch timesheets, optionally filtered by date range and/or employee."""
-    try:
-        start_date = request.args.get('start_date')
-        end_date = request.args.get('end_date')
-        employee_id = request.args.get('employee_id')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    employee_id = request.args.get('employee_id')
 
-        query = Timesheet.query
-        if employee_id:
-            query = query.filter(Timesheet.employee_id == int(employee_id))
+    query = Timesheet.query
+    if employee_id:
+        query = query.filter(Timesheet.employee_id == int(employee_id))
 
-        if start_date:
-            try:
-                start_dt = datetime.strptime(start_date, '%Y-%m-%d').date()
-                query = query.filter(Timesheet.date >= start_dt)
-            except ValueError:
-                return jsonify({'error': 'Invalid start_date format. Use YYYY-MM-DD'}), 400
-        if end_date:
-            try:
-                end_dt = datetime.strptime(end_date, '%Y-%m-%d').date()
-                query = query.filter(Timesheet.date <= end_dt)
-            except ValueError:
-                return jsonify({'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
+    if start_date:
+        try:
+            start_dt = datetime.strptime(start_date, '%Y-%m-%d').date()
+            query = query.filter(Timesheet.date >= start_dt)
+        except ValueError:
+            return jsonify({'error': 'Invalid start_date format. Use YYYY-MM-DD'}), 400
+    if end_date:
+        try:
+            end_dt = datetime.strptime(end_date, '%Y-%m-%d').date()
+            query = query.filter(Timesheet.date <= end_dt)
+        except ValueError:
+            return jsonify({'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
 
-        timesheets = query.order_by(Timesheet.date.desc()).all()
-        return jsonify([ts.to_dict() for ts in timesheets]), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    timesheets = query.order_by(Timesheet.date.desc()).all()
+    return jsonify([ts.to_dict() for ts in timesheets]), 200
 
 @timesheets_bp.route('/generate', methods=['POST'])
 def generate_timesheets():

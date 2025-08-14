@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { employeesAPI, rolesAPI, areasAPI, skillsAPI, licensesAPI } from '../lib/api';
+import { employeesAPI, rolesAPI, areasAPI, skillsAPI } from '../lib/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -57,7 +57,6 @@ export function Employees() {
   const [roles, setRoles] = useState([]);
   const [areas, setAreas] = useState([]);
   const [skills, setSkills] = useState([]);
-  const [licenseOptions, setLicenseOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -89,19 +88,18 @@ export function Employees() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [employeesRes, rolesRes, areasRes, skillsRes, licensesRes] = await Promise.all([
+      const [employeesRes, rolesRes, areasRes, skillsRes] = await Promise.all([
         employeesAPI.getAll(),
         rolesAPI.getAll(),
         areasAPI.getAll(),
-        skillsAPI.getAll(),
-        licensesAPI.getAll()
+        skillsAPI.getAll()
+        // Remove licensesAPI.getAll()
       ]);
-      
       setEmployees(employeesRes.data.employees || []);
       setRoles(rolesRes.data.roles || []);
       setAreas(areasRes.data.areas || []);
       setSkills(skillsRes.data.skills || []);
-      setLicenseOptions(licensesRes.data || []);
+      // Remove setLicenseOptions(licensesRes.data || []);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to fetch data');
     } finally {
@@ -439,7 +437,7 @@ export function Employees() {
                       </div>
                     </AccordionContent>
                   </AccordionItem>
-                  <AccordionItem value="licenses">
+                  {/* <AccordionItem value="licenses">
                     <AccordionTrigger>Licenses</AccordionTrigger>
                     <AccordionContent>
                       <div className="space-y-2 mt-2">
@@ -474,7 +472,7 @@ export function Employees() {
                         })}
                       </div>
                     </AccordionContent>
-                  </AccordionItem>
+                  </AccordionItem> */}
                   <AccordionItem value="rates">
                     <AccordionTrigger>Rates</AccordionTrigger>
                     <AccordionContent>
@@ -606,7 +604,7 @@ export function Employees() {
                   <TableHead>Role</TableHead>
                   <TableHead>Area</TableHead>
                   <TableHead>Skills</TableHead>
-                  <TableHead>Licenses</TableHead>
+                  {/* <TableHead>Licenses</TableHead> */}
                   {isAdmin() && <TableHead>Actions</TableHead>}
                 </TableRow>
               </TableHeader>
@@ -683,7 +681,7 @@ export function Employees() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    {/* <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {(employee.licenses_detailed || []).slice(0, 5).map((ld) => {
                           const soon = ld.expiring_soon;
@@ -699,7 +697,7 @@ export function Employees() {
                           <Badge variant="outline" className="text-xs">+{employee.licenses_detailed.length - 5}</Badge>
                         )}
                       </div>
-                    </TableCell>
+                    </TableCell> */}
                     {isAdmin() && (
                       <TableCell>
                         <div className="flex space-x-2">

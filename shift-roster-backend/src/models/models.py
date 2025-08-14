@@ -1,4 +1,3 @@
-
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import json
@@ -291,6 +290,7 @@ class Timesheet(db.Model):
     status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
     approved_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     approved_at = db.Column(db.DateTime)
+    accepted_at = db.Column(db.DateTime, nullable=True)
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -320,7 +320,8 @@ class Timesheet(db.Model):
             } if self.timesheet_approver else None,
             'approved_at': self.approved_at.isoformat() if self.approved_at else None,
             'notes': self.notes,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'accepted_at': self.accepted_at.isoformat() if self.accepted_at else None
         }
 
 class LeaveRequest(db.Model):

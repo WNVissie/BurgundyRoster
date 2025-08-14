@@ -131,76 +131,74 @@ export function Leave() {
                 Request time off and view your leave history. {isManager && "Managers can approve or reject requests."}
               </CardDescription>
             </div>
-            {!isManager && (
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Request Leave
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>New Leave Request</DialogTitle>
-                    <DialogDescription>
-                      Fill out the form to request time off.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <form onSubmit={handleSubmit} className="space-y-4">
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Request Leave
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>New Leave Request</DialogTitle>
+                  <DialogDescription>
+                    Fill out the form to request time off.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <Label htmlFor="leave-type">Leave Type</Label>
+                    <select
+                      id="leave-type"
+                      value={form.leave_type}
+                      onChange={(e) => setForm({ ...form, leave_type: e.target.value })}
+                      className="w-full mt-1 p-2 border rounded-md"
+                    >
+                      <option>Unpaid</option>
+                      <option>Paid</option>
+                      <option>Sick</option>
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="leave-type">Leave Type</Label>
-                      <select
-                        id="leave-type"
-                        value={form.leave_type}
-                        onChange={(e) => setForm({ ...form, leave_type: e.target.value })}
-                        className="w-full mt-1 p-2 border rounded-md"
-                      >
-                        <option>Unpaid</option>
-                        <option>Paid</option>
-                        <option>Sick</option>
-                      </select>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="start-date">Start Date</Label>
-                        <Input
-                          id="start-date"
-                          type="date"
-                          value={form.start_date}
-                          onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="end-date">End Date</Label>
-                        <Input
-                          id="end-date"
-                          type="date"
-                          value={form.end_date}
-                          onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="reason">Reason</Label>
-                      <Textarea
-                        id="reason"
-                        value={form.reason}
-                        onChange={(e) => setForm({ ...form, reason: e.target.value })}
+                      <Label htmlFor="start-date">Start Date</Label>
+                      <Input
+                        id="start-date"
+                        type="date"
+                        value={form.start_date}
+                        onChange={(e) => setForm({ ...form, start_date: e.target.value })}
                         required
                       />
                     </div>
-                    <DialogFooter>
-                      <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                        Cancel
-                      </Button>
-                      <Button type="submit">Submit Request</Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            )}
+                    <div>
+                      <Label htmlFor="end-date">End Date</Label>
+                      <Input
+                        id="end-date"
+                        type="date"
+                        value={form.end_date}
+                        onChange={(e) => setForm({ ...form, end_date: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="reason">Reason</Label>
+                    <Textarea
+                      id="reason"
+                      value={form.reason}
+                      onChange={(e) => setForm({ ...form, reason: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit">Submit Request</Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardHeader>
         <CardContent>
