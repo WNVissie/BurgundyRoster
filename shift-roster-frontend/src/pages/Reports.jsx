@@ -15,7 +15,7 @@ import { FileText, Search, Calendar } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
-import { DateRange } from 'react-day-picker';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 
 export function Reports() {
