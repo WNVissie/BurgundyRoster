@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { employeesAPI, rolesAPI, areasAPI, skillsAPI } from '../lib/api';
+import { employeesAPI, rolesAPI, areasAPI, skillsAPI, designationsAPI } from '../lib/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -57,6 +57,7 @@ export function Employees() {
   const [roles, setRoles] = useState([]);
   const [areas, setAreas] = useState([]);
   const [skills, setSkills] = useState([]);
+  const [designations, setDesignations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,7 +72,7 @@ export function Employees() {
     employee_id: '',
     contact_no: '',
   email: '',
-  designation: '',
+  designation_id: '',
     role_id: '',
     area_of_responsibility_id: ''
   });
@@ -88,18 +89,18 @@ export function Employees() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [employeesRes, rolesRes, areasRes, skillsRes] = await Promise.all([
+      const [employeesRes, rolesRes, areasRes, skillsRes, designationsRes] = await Promise.all([
         employeesAPI.getAll(),
         rolesAPI.getAll(),
         areasAPI.getAll(),
-        skillsAPI.getAll()
-        // Remove licensesAPI.getAll()
+        skillsAPI.getAll(),
+        designationsAPI.getAll()
       ]);
       setEmployees(employeesRes.data.employees || []);
       setRoles(rolesRes.data.roles || []);
       setAreas(areasRes.data.areas || []);
       setSkills(skillsRes.data.skills || []);
-      // Remove setLicenseOptions(licensesRes.data || []);
+      setDesignations(designationsRes.data.designations || []);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to fetch data');
     } finally {
@@ -119,7 +120,7 @@ export function Employees() {
           contact_no: formData.contact_no,
           ...(formData.alt_contact_name ? { alt_contact_name: formData.alt_contact_name } : {}),
           ...(formData.alt_contact_no ? { alt_contact_no: formData.alt_contact_no } : {}),
-          ...(formData.designation ? { designation: formData.designation } : {}),
+          ...(formData.designation_id ? { designation_id: parseInt(formData.designation_id, 10) } : {}),
           ...(formData.role_id ? { role_id: parseInt(formData.role_id, 10) } : {}),
           ...(formData.area_of_responsibility_id ? { area_of_responsibility_id: parseInt(formData.area_of_responsibility_id, 10) } : {}),
         };
@@ -173,7 +174,7 @@ export function Employees() {
           contact_no: formData.contact_no,
           ...(formData.alt_contact_name ? { alt_contact_name: formData.alt_contact_name } : {}),
           ...(formData.alt_contact_no ? { alt_contact_no: formData.alt_contact_no } : {}),
-          ...(formData.designation ? { designation: formData.designation } : {}),
+          ...(formData.designation_id ? { designation_id: parseInt(formData.designation_id, 10) } : {}),
           ...(formData.role_id ? { role_id: parseInt(formData.role_id, 10) } : {}),
           ...(formData.area_of_responsibility_id ? { area_of_responsibility_id: parseInt(formData.area_of_responsibility_id, 10) } : {}),
         };
@@ -201,7 +202,7 @@ export function Employees() {
         alt_contact_name: '',
         alt_contact_no: '',
         email: '',
-        designation: '',
+        designation_id: '',
         role_id: '',
         area_of_responsibility_id: ''
       });
@@ -226,7 +227,7 @@ export function Employees() {
       alt_contact_name: employee.alt_contact_name || '',
       alt_contact_no: employee.alt_contact_no || '',
       email: employee.email,
-      designation: employee.designation || '',
+      designation_id: (employee.designation_id ?? '').toString(),
       role_id: employee.role_id.toString(),
       area_of_responsibility_id: (employee.area_of_responsibility_id ?? '').toString()
     });
@@ -312,7 +313,7 @@ export function Employees() {
                   employee_id: '',
                   contact_no: '',
                   email: '',
-                  designation: '',
+                  designation_id: '',
                   role_id: '',
                   area_of_responsibility_id: ''
                 });
@@ -390,12 +391,18 @@ export function Employees() {
 
                 <div>
                   <Label htmlFor="designation">Designation</Label>
-                  <Input
-                    id="designation"
-                    value={formData.designation || ''}
-                    onChange={(e) => setFormData({...formData, designation: e.target.value})}
-                    placeholder="e.g. Senior Barista, Shift Lead"
-                  />
+                  <Select value={formData.designation_id} onValueChange={(value) => setFormData({...formData, designation_id: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a designation" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {designations.map((designation) => (
+                        <SelectItem key={designation.designation_id} value={designation.designation_id.toString()}>
+                          {designation.designation_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

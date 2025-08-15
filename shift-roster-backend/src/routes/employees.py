@@ -180,16 +180,20 @@ def update_employee(employee_id):
         # Update allowed fields
         for field in allowed_fields:
             if field in data:
-                if field == 'role_id' and data[field]:
-                    role = Role.query.get(data[field])
-                    if not role:
-                        return jsonify({'error': 'Invalid role ID'}), 400
-                
-                if field == 'area_of_responsibility_id' and data[field]:
-                    area = AreaOfResponsibility.query.get(data[field])
-                    if not area:
-                        return jsonify({'error': 'Invalid area of responsibility ID'}), 400
-                
+                if field == 'role_id':
+                    if data[field]:
+                        role = Role.query.get(data[field])
+                        if not role:
+                            return jsonify({'error': 'Invalid role ID'}), 400
+                    employee.role_id = data[field]
+                elif field == 'area_of_responsibility_id':
+                    if data[field]:
+                        area = AreaOfResponsibility.query.get(data[field])
+                        if not area:
+                            return jsonify({'error': 'Invalid area of responsibility ID'}), 400
+                    employee.area_of_responsibility_id = data[field]
+                elif field == 'designation_id':
+                    employee.designation_id = data[field]
                 else:
                     setattr(employee, field, data[field])
         

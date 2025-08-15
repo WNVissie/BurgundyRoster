@@ -53,10 +53,10 @@ export function Reports() {
           employeesAPI.getAll(),
         ]);
         setSkills(skillsRes.data.skills || []);
-        setLicenses(licensesRes.data || []);
+        setLicenses((licensesRes.data.licenses || []).map(l => ({ id: l.id, name: l.name })));
         setRoles(rolesRes.data.roles || []);
         setAreas(areasRes.data.areas || []);
-        setDesignations(designationsRes.data || []);
+        setDesignations((designationsRes.data.designations || []).map(d => ({ id: d.designation_id, name: d.designation_name })));
         setAllEmployees(employeesRes.data.employees || []);
       } catch (err) {
         setError('Failed to load filter options.');

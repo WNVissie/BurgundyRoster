@@ -187,6 +187,7 @@ export const analyticsAPI = {
   getEmployeesByArea: () => api.get('/analytics/employees-by-area'),
   getLeaveSummary: (params) => api.get('/analytics/leave-summary', { params }),
   skillSearch: (params) => api.get('/analytics/skill-search', { params }),
+  getSkillDistribution: () => api.get('/analytics/skill-distribution'),
   getShiftCoverage: (params) => api.get('/analytics/shift-coverage', { params }),
   getWeeklyApprovalTrends: () => api.get('/analytics/weekly-approval-trends'),
 };
