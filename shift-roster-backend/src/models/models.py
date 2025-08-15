@@ -151,8 +151,8 @@ class User(db.Model):
     designation_id = db.Column(db.Integer, db.ForeignKey('designations.designation_id'))
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False)
     area_of_responsibility_id = db.Column(db.Integer, db.ForeignKey('areas_of_responsibility.id'))
-    rate_type = db.Column(db.String(50), name='rate__type')
-    rate_value = db.Column(db.Numeric(10, 2), name='rate__value')
+    rate_type = db.Column(db.String(50), name='rate_type')
+    rate_value = db.Column(db.Numeric(10, 2), name='rate_-value')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
