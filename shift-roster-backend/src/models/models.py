@@ -182,6 +182,7 @@ class User(db.Model):
                 'expired': days_to_expiry is not None and days_to_expiry < 0,
                 'expiring_soon': days_to_expiry is not None and days_to_expiry <= 30
             })
+
         return {
             'id': self.id,
             'google_id': self.google_id,

@@ -15,7 +15,7 @@ import { FileText, Search, Calendar } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as DayPickerCalendar } from 'react-day-picker';
 import { format } from 'date-fns';
 
 export function Reports() {
@@ -205,7 +205,7 @@ export function Reports() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
+                <DayPickerCalendar
                   initialFocus
                   mode="range"
                   defaultMonth={dateRange?.from}

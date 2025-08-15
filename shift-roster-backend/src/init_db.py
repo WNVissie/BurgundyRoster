@@ -153,6 +153,14 @@ def init_database():
                 'hours': 4.0,
                 'description': 'Part-time evening shift',
                 'color': '#f39c12'
+            },
+            {
+                'name': 'On Leave',
+                'start_time': time(0, 0),
+                'end_time': time(0, 0),
+                'hours': 0.0,
+                'description': 'Employee is on approved leave',
+                'color': '#7f8c8d'
             }
         ]
         
