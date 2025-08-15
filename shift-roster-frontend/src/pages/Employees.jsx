@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { employeesAPI, rolesAPI, areasAPI, skillsAPI } from '../lib/api';
+import api from '../lib/api'; // <-- Add this line
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -57,6 +58,7 @@ export function Employees() {
   const [roles, setRoles] = useState([]);
   const [areas, setAreas] = useState([]);
   const [skills, setSkills] = useState([]);
+  const [designations, setDesignations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -70,8 +72,8 @@ export function Employees() {
     surname: '',
     employee_id: '',
     contact_no: '',
-  email: '',
-  designation: '',
+    email: '',
+    designation_id: '', // <-- use designation_id
     role_id: '',
     area_of_responsibility_id: ''
   });
@@ -83,6 +85,14 @@ export function Employees() {
 
   useEffect(() => {
     fetchData();
+  }, []);
+
+  useEffect(() => {
+    async function fetchDesignations() {
+      const res = await api.get('/designations');
+      setDesignations(res.data);
+    }
+    fetchDesignations();
   }, []);
 
   const fetchData = async () => {
@@ -119,7 +129,7 @@ export function Employees() {
           contact_no: formData.contact_no,
           ...(formData.alt_contact_name ? { alt_contact_name: formData.alt_contact_name } : {}),
           ...(formData.alt_contact_no ? { alt_contact_no: formData.alt_contact_no } : {}),
-          ...(formData.designation ? { designation: formData.designation } : {}),
+         ...(formData.designation_id ? { designation_id: parseInt(formData.designation_id, 10) } : {}),
           ...(formData.role_id ? { role_id: parseInt(formData.role_id, 10) } : {}),
           ...(formData.area_of_responsibility_id ? { area_of_responsibility_id: parseInt(formData.area_of_responsibility_id, 10) } : {}),
         };
@@ -164,7 +174,7 @@ export function Employees() {
           }
         }
       } else {
-        const createData = {
+          const createData = {
           google_id: `manual_${Date.now()}`,
           email: formData.email,
           name: formData.name,
@@ -173,7 +183,7 @@ export function Employees() {
           contact_no: formData.contact_no,
           ...(formData.alt_contact_name ? { alt_contact_name: formData.alt_contact_name } : {}),
           ...(formData.alt_contact_no ? { alt_contact_no: formData.alt_contact_no } : {}),
-          ...(formData.designation ? { designation: formData.designation } : {}),
+          ...(formData.designation_id ? { designation_id: parseInt(formData.designation_id, 10) } : {}), // <-- ADD THIS LINE
           ...(formData.role_id ? { role_id: parseInt(formData.role_id, 10) } : {}),
           ...(formData.area_of_responsibility_id ? { area_of_responsibility_id: parseInt(formData.area_of_responsibility_id, 10) } : {}),
         };
@@ -201,7 +211,7 @@ export function Employees() {
         alt_contact_name: '',
         alt_contact_no: '',
         email: '',
-        designation: '',
+        designation_id: '', // <-- use designation_id
         role_id: '',
         area_of_responsibility_id: ''
       });
@@ -226,7 +236,7 @@ export function Employees() {
       alt_contact_name: employee.alt_contact_name || '',
       alt_contact_no: employee.alt_contact_no || '',
       email: employee.email,
-      designation: employee.designation || '',
+      designation_id: employee.designation_id ? employee.designation_id.toString() : '', // <-- use designation_id
       role_id: employee.role_id.toString(),
       area_of_responsibility_id: (employee.area_of_responsibility_id ?? '').toString()
     });
@@ -271,8 +281,9 @@ export function Employees() {
     
   const matchesRole = selectedRole === 'all' || employee.role_id.toString() === selectedRole;
   const matchesArea = selectedArea === 'all' || (employee.area_of_responsibility_id?.toString() === selectedArea);
+  const matchesDesignation = true; // No designation filter
     
-    return matchesSearch && matchesRole && matchesArea;
+    return matchesSearch && matchesRole && matchesArea && matchesDesignation;
   });
 
   const getRoleName = (roleId) => {
@@ -312,7 +323,7 @@ export function Employees() {
                   employee_id: '',
                   contact_no: '',
                   email: '',
-                  designation: '',
+                  designation_id: '', // <-- use designation_id
                   role_id: '',
                   area_of_responsibility_id: ''
                 });
@@ -386,17 +397,7 @@ export function Employees() {
                     onChange={(e) => setFormData({...formData, contact_no: e.target.value})}
                     required
                   />
-                </div>
-
-                <div>
-                  <Label htmlFor="designation">Designation</Label>
-                  <Input
-                    id="designation"
-                    value={formData.designation || ''}
-                    onChange={(e) => setFormData({...formData, designation: e.target.value})}
-                    placeholder="e.g. Senior Barista, Shift Lead"
-                  />
-                </div>
+                </div>              
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -511,6 +512,22 @@ export function Employees() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="designation">Designation</Label>
+                  <select
+                    id="designation"
+                    value={formData.designation_id || ''}
+                    onChange={e => setFormData({ ...formData, designation_id: e.target.value })}
+                    className="w-full border rounded-md p-2 text-sm"
+                    required
+                  >
+                    <option value="">Select designation</option>
+                    {designations.map(d => (
+                      <option key={d.id} value={d.id}>{d.designation_name}</option>
+                    ))}
+                  </select>
                 </div>
                 
                 <DialogFooter>
@@ -643,7 +660,12 @@ export function Employees() {
                       <div className="text-sm">{employee.alt_contact_no || '-'}</div>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm">{employee.designation || '-'}</div>
+                      <div className="text-sm">
+                        {(() => {
+                          const d = designations.find(des => String(des.id) === String(employee.designation_id));
+                          return d ? d.designation_name : '-';
+                        })()}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary">{getRoleName(employee.role_id)}</Badge>

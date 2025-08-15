@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils"
 
 function Table({
   className,
+  children,
   ...props
 }) {
   return (
@@ -11,49 +12,65 @@ function Table({
       <table
         data-slot="table"
         className={cn("w-full caption-bottom text-sm", className)}
-        {...props} />
+        {...props}
+      >
+        {children}
+      </table>
     </div>
   );
 }
 
 function TableHeader({
   className,
+  children,
   ...props
 }) {
   return (
     <thead
       data-slot="table-header"
       className={cn("[&_tr]:border-b", className)}
-      {...props} />
+      {...props}
+    >
+      {children}
+    </thead>
   );
 }
 
 function TableBody({
   className,
+  children,
   ...props
 }) {
   return (
     <tbody
       data-slot="table-body"
       className={cn("[&_tr:last-child]:border-0", className)}
-      {...props} />
+      {...props}
+    >
+      {children}
+    </tbody>
   );
 }
 
 function TableFooter({
   className,
+  children,
   ...props
 }) {
   return (
     <tfoot
       data-slot="table-footer"
       className={cn("bg-muted/50 border-t font-medium [&>tr]:last:border-b-0", className)}
-      {...props} />
+      {...props}
+    >
+      {children}
+    </tfoot>
   );
 }
 
 function TableRow({
   className,
+  children,
   ...props
 }) {
   return (
@@ -63,12 +80,16 @@ function TableRow({
         "hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors",
         className
       )}
-      {...props} />
+      {...props}
+    >
+      {children}
+    </tr>
   );
 }
 
 function TableHead({
   className,
+  children,
   ...props
 }) {
   return (
@@ -78,12 +99,16 @@ function TableHead({
         "text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
-      {...props} />
+      {...props}
+    >
+      {children}
+    </th>
   );
 }
 
 function TableCell({
   className,
+  children,
   ...props
 }) {
   return (
@@ -93,19 +118,26 @@ function TableCell({
         "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
-      {...props} />
+      {...props}
+    >
+      {children}
+    </td>
   );
 }
 
 function TableCaption({
   className,
+  children,
   ...props
 }) {
   return (
     <caption
       data-slot="table-caption"
       className={cn("text-muted-foreground mt-4 text-sm", className)}
-      {...props} />
+      {...props}
+    >
+      {children}
+    </caption>
   );
 }
 
