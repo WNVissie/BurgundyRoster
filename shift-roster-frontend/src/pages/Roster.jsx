@@ -377,12 +377,21 @@ function StaticRosterView() {
                           <span className="font-medium">
                             {employee?.name} {employee?.surname}
                           </span>
-                          <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded ${
-                            rosterEntry.status === 'approved' ? 'bg-green-100 text-green-800' : rosterEntry.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {rosterEntry.status === 'approved' ? <CheckCircle className="h-3 w-3 text-green-600" /> : rosterEntry.status === 'rejected' ? <XCircle className="h-3 w-3 text-red-600" /> : <AlertCircle className="h-3 w-3 text-yellow-600" />}
-                            {rosterEntry.status}
-                          </span>
+                          <div className="flex flex-col items-end">
+                            <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded ${
+                              rosterEntry.status === 'approved' || rosterEntry.status === 'accepted' ? 'bg-green-100 text-green-800' : rosterEntry.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {rosterEntry.status === 'approved' || rosterEntry.status === 'accepted' ? <CheckCircle className="h-3 w-3 text-green-600" /> : rosterEntry.status === 'rejected' ? <XCircle className="h-3 w-3 text-red-600" /> : <AlertCircle className="h-3 w-3 text-yellow-600" />}
+                              {rosterEntry.status === 'accepted' ? 'Approved' : rosterEntry.status}
+                            </span>
+                            {(rosterEntry.status === 'approved' || rosterEntry.status === 'accepted') && (
+                              <span className={`mt-1 inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded ${
+                                rosterEntry.status === 'accepted' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {rosterEntry.status === 'accepted' ? 'Accepted' : 'Not Accepted'}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         
                         <div className="flex items-center text-xs opacity-75">

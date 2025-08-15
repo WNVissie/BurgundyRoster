@@ -97,10 +97,13 @@ def generate_timesheets():
 @jwt_required()
 def approve_timesheet(id):
     """Approve a timesheet by ID."""
+    current_user = get_current_user()
     ts = Timesheet.query.get(id)
     if not ts:
         return jsonify({'error': 'Timesheet not found'}), 404
     ts.status = 'approved'
+    ts.approved_by = current_user.id
+    ts.approved_at = datetime.utcnow()
     db.session.commit()
     return jsonify({'message': 'Timesheet approved', 'timesheet': ts.to_dict()}), 200
 
@@ -119,9 +122,15 @@ def accept_timesheet(id):
 @jwt_required()
 def reject_timesheet(id):
     """Reject a timesheet by ID."""
+    current_user = get_current_user()
+    data = request.get_json()
     ts = Timesheet.query.get(id)
     if not ts:
         return jsonify({'error': 'Timesheet not found'}), 404
     ts.status = 'rejected'
+    ts.approved_by = current_user.id
+    ts.approved_at = datetime.utcnow()
+    if data and 'notes' in data:
+        ts.notes = data['notes']
     db.session.commit()
     return jsonify({'message': 'Timesheet rejected', 'timesheet': ts.to_dict()}), 200

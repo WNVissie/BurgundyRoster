@@ -198,7 +198,7 @@ export const timesheetsAPI = {
   generate: (payload) => api.post('/timesheets/generate', payload),
   getAll: (params) => api.get('/timesheets', { params }),
   approve: (id) => api.post(`/timesheets/${id}/approve`),
-  reject: (id) => api.post(`/timesheets/${id}/reject`),
+  reject: (id, data) => api.post(`/timesheets/${id}/reject`, data),
   accept: (id) => api.post(`/timesheets/${id}/accept`),
 };
 

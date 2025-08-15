@@ -151,6 +151,8 @@ class User(db.Model):
     designation_id = db.Column(db.Integer, db.ForeignKey('designations.designation_id'))
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False)
     area_of_responsibility_id = db.Column(db.Integer, db.ForeignKey('areas_of_responsibility.id'))
+    rate_type = db.Column(db.String(50), name='rate__type')
+    rate_value = db.Column(db.Numeric(10, 2), name='rate__value')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -196,6 +198,8 @@ class User(db.Model):
             'role': self.role_ref.to_dict() if self.role_ref else None,
             'area_of_responsibility_id': self.area_of_responsibility_id,
             'area_of_responsibility': self.area_ref.to_dict() if self.area_ref else None,
+            'rate_type': self.rate_type,
+            'rate_value': float(self.rate_value) if self.rate_value is not None else None,
             'skills': [skill.to_dict() for skill in self.skills],
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
@@ -282,7 +286,8 @@ class ShiftRoster(db.Model):
             'approved_at': self.approved_at.isoformat() if self.approved_at else None,
             'accepted_at': self.accepted_at.isoformat() if self.accepted_at else None,
             'notes': self.notes,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'timesheet': self.timesheets[0].to_dict() if self.timesheets else None
         }
 
 class Timesheet(db.Model):

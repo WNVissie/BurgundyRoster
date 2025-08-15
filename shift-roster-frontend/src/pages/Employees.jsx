@@ -74,7 +74,9 @@ export function Employees() {
   email: '',
   designation_id: '',
     role_id: '',
-    area_of_responsibility_id: ''
+    area_of_responsibility_id: '',
+    rate_type: '',
+    rate_value: ''
   });
   const [selectedSkills, setSelectedSkills] = useState([]); // array of skill IDs (string)
   const [initialSelectedSkills, setInitialSelectedSkills] = useState([]);
@@ -100,7 +102,7 @@ export function Employees() {
       setRoles(rolesRes.data.roles || []);
       setAreas(areasRes.data.areas || []);
       setSkills(skillsRes.data.skills || []);
-      setDesignations(designationsRes.data.designations || []);
+      setDesignations(designationsRes.data || []);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to fetch data');
     } finally {
@@ -123,6 +125,8 @@ export function Employees() {
           ...(formData.designation_id ? { designation_id: parseInt(formData.designation_id, 10) } : {}),
           ...(formData.role_id ? { role_id: parseInt(formData.role_id, 10) } : {}),
           ...(formData.area_of_responsibility_id ? { area_of_responsibility_id: parseInt(formData.area_of_responsibility_id, 10) } : {}),
+          rate_type: formData.rate_type,
+          rate_value: formData.rate_value,
         };
         await employeesAPI.update(editingEmployee.id, updateData);
 
@@ -177,6 +181,8 @@ export function Employees() {
           ...(formData.designation_id ? { designation_id: parseInt(formData.designation_id, 10) } : {}),
           ...(formData.role_id ? { role_id: parseInt(formData.role_id, 10) } : {}),
           ...(formData.area_of_responsibility_id ? { area_of_responsibility_id: parseInt(formData.area_of_responsibility_id, 10) } : {}),
+          rate_type: formData.rate_type,
+          rate_value: formData.rate_value,
         };
         const res = await employeesAPI.create(createData);
         const newId = res?.data?.employee?.id;
@@ -204,7 +210,9 @@ export function Employees() {
         email: '',
         designation_id: '',
         role_id: '',
-        area_of_responsibility_id: ''
+        area_of_responsibility_id: '',
+        rate_type: '',
+        rate_value: ''
       });
       setSelectedSkills([]);
       setInitialSelectedSkills([]);
@@ -229,7 +237,9 @@ export function Employees() {
       email: employee.email,
       designation_id: (employee.designation_id ?? '').toString(),
       role_id: employee.role_id.toString(),
-      area_of_responsibility_id: (employee.area_of_responsibility_id ?? '').toString()
+      area_of_responsibility_id: (employee.area_of_responsibility_id ?? '').toString(),
+      rate_type: employee.rate_type || '',
+      rate_value: employee.rate_value || ''
     });
     // Skills selection
     const currentSkills = (employee.skills || []).map(s => s.id.toString());
@@ -315,7 +325,9 @@ export function Employees() {
                   email: '',
                   designation_id: '',
                   role_id: '',
-                  area_of_responsibility_id: ''
+                  area_of_responsibility_id: '',
+                  rate_type: '',
+                  rate_value: ''
                 });
                 setSelectedSkills([]);
                 setInitialSelectedSkills([]);
@@ -327,7 +339,7 @@ export function Employees() {
                 Add Employee
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-2xl">
               <DialogHeader>
                 <DialogTitle>
                   {editingEmployee ? 'Edit Employee' : 'Add New Employee'}
@@ -483,7 +495,32 @@ export function Employees() {
                   <AccordionItem value="rates">
                     <AccordionTrigger>Rates</AccordionTrigger>
                     <AccordionContent>
-                      <p className="text-sm text-gray-500">Rate management will be implemented here.</p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="rate_type">Rate Type</Label>
+                          <Select value={formData.rate_type} onValueChange={(value) => setFormData({...formData, rate_type: value})}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a rate type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Monthly">Monthly</SelectItem>
+                              <SelectItem value="Weekly">Weekly</SelectItem>
+                              <SelectItem value="Daily">Daily</SelectItem>
+                              <SelectItem value="Hourly">Hourly</SelectItem>
+                              <SelectItem value="Casual">Casual</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="rate_value">Rate Value (ZAR)</Label>
+                          <Input
+                            id="rate_value"
+                            type="number"
+                            value={formData.rate_value}
+                            onChange={(e) => setFormData({...formData, rate_value: e.target.value})}
+                          />
+                        </div>
+                      </div>
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
@@ -748,4 +785,3 @@ export function Employees() {
     </div>
   );
 }
-

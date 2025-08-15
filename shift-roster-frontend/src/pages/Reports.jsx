@@ -285,7 +285,9 @@ export function Reports() {
                   <TableHead>Date</TableHead>
                   <TableHead>Shift</TableHead>
                   <TableHead>Hours</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Shift Status</TableHead>
+                  <TableHead>Timesheet Status</TableHead>
+                  <TableHead>Timesheet Notes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -294,7 +296,17 @@ export function Reports() {
                     <TableCell>{entry.date}</TableCell>
                     <TableCell>{entry.shift.name}</TableCell>
                     <TableCell>{entry.hours}</TableCell>
-                    <TableCell><Badge variant={entry.status === 'approved' ? 'success' : 'secondary'}>{entry.status}</Badge></TableCell>
+                    <TableCell><Badge variant={entry.status === 'accepted' ? 'success' : 'secondary'}>{entry.status}</Badge></TableCell>
+                    <TableCell>
+                      {entry.timesheet ? (
+                        <Badge variant={entry.timesheet.status === 'approved' ? 'success' : entry.timesheet.status === 'rejected' ? 'destructive' : 'secondary'}>
+                          {entry.timesheet.status}
+                        </Badge>
+                      ) : (
+                        'N/A'
+                      )}
+                    </TableCell>
+                    <TableCell>{entry.timesheet?.notes || ''}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
