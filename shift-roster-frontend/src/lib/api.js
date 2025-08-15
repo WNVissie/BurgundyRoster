@@ -143,6 +143,7 @@ export const leaveAPI = {
 export const reportsAPI = {
   employeeSearch: (params) => api.get('/reports/employee-search', { params }),
   getEmployeeHistory: (employeeId) => api.get(`/reports/employee-history/${employeeId}`),
+  shiftAcceptance: (params) => api.get('/reports/shift-acceptance', { params }),
 };
 
 // Designations API

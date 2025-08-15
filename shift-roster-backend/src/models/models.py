@@ -237,6 +237,7 @@ class ShiftRoster(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     employee_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     shift_id = db.Column(db.Integer, db.ForeignKey('shifts.id'), nullable=False)
+    area_of_responsibility_id = db.Column(db.Integer, db.ForeignKey('areas_of_responsibility.id'), nullable=True)
     date = db.Column(db.Date, nullable=False)
     hours = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(20), default='pending')  # pending, approved, rejected, accepted
@@ -248,6 +249,7 @@ class ShiftRoster(db.Model):
     
     # Relationships
     timesheets = db.relationship('Timesheet', backref='roster', lazy=True)
+    area = db.relationship('AreaOfResponsibility', backref='shift_rosters', lazy=True)
     
     def __repr__(self):
         return f'<ShiftRoster {self.employee.name} - {self.shift.name} - {self.date}>'
@@ -266,6 +268,8 @@ class ShiftRoster(db.Model):
             } if self.employee else None,
             'shift_id': self.shift_id,
             'shift': self.shift.to_dict() if self.shift else None,
+            'area_of_responsibility_id': self.area_of_responsibility_id,
+            'area': self.area.to_dict() if self.area else None,
             'date': self.date.isoformat() if self.date else None,
             'hours': self.hours,
             'status': self.status,

@@ -11,7 +11,7 @@ import {
 
 // Original static roster view (keeping for comparison)
 import { useAuth } from '../contexts/AuthContext';
-import api, { rosterAPI, employeesAPI, shiftsAPI } from '../lib/api';
+import api, { rosterAPI, employeesAPI, shiftsAPI, areasAPI } from '../lib/api';
 import { Badge } from '../components/ui/badge';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import {
@@ -52,6 +52,7 @@ function StaticRosterView() {
   const [roster, setRoster] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [shifts, setShifts] = useState([]);
+  const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   // const [selectedDate, setSelectedDate] = useState(new Date());
@@ -59,6 +60,7 @@ function StaticRosterView() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [selectedShift, setSelectedShift] = useState('');
+  const [selectedArea, setSelectedArea] = useState('');
   const [selectedRosterDate, setSelectedRosterDate] = useState(new Date());
   const [selectedShifts, setSelectedShifts] = useState(new Set());
 
@@ -80,18 +82,20 @@ function StaticRosterView() {
       const startDate = startOfWeek(currentWeek);
       const endDate = endOfWeek(currentWeek);
       
-      const [rosterRes, employeesRes, shiftsRes] = await Promise.all([
+      const [rosterRes, employeesRes, shiftsRes, areasRes] = await Promise.all([
         rosterAPI.getAll({
           start_date: format(startDate, 'yyyy-MM-dd'),
           end_date: format(endDate, 'yyyy-MM-dd')
         }),
         employeesAPI.getAll(),
-        shiftsAPI.getAll()
+        shiftsAPI.getAll(),
+        areasAPI.getAll()
       ]);
       
       setRoster(rosterRes.data.roster || []);
       setEmployees(employeesRes.data.employees || []);
       setShifts(shiftsRes.data.shifts || []);
+      setAreas(areasRes.data.areas || []);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to fetch roster data');
     } finally {
@@ -111,13 +115,15 @@ function StaticRosterView() {
         shift_id: parseInt(selectedShift),
         date: format(selectedRosterDate, 'yyyy-MM-dd'),
         status: 'pending',
-        hours: selShift?.hours
+        hours: selShift?.hours,
+        area_of_responsibility_id: selectedArea ? parseInt(selectedArea) : null
       };
       
       await rosterAPI.create(rosterData);
       setIsDialogOpen(false);
       setSelectedEmployee('');
       setSelectedShift('');
+      setSelectedArea('');
       fetchData();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to create roster entry');
@@ -272,6 +278,23 @@ function StaticRosterView() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div>
+                <label className="text-sm font-medium">Temporary Area (Optional)</label>
+                <Select value={selectedArea} onValueChange={setSelectedArea}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Default to employee's area" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Default Area</SelectItem>
+                    {areas.map((area) => (
+                      <SelectItem key={area.id} value={area.id.toString()}>
+                        {area.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               
               <div>
                 <label className="text-sm font-medium">Shift</label>
@@ -370,6 +393,14 @@ function StaticRosterView() {
                         <div className="text-xs opacity-75 mt-1">
                           {shift?.name}
                         </div>
+
+                        {rosterEntry.area && (
+                          <div className={`text-xs mt-1 p-1 rounded ${
+                            rosterEntry.area.id !== employee?.area_of_responsibility_id ? 'bg-red-100 text-red-800 font-bold' : 'opacity-75'
+                          }`}>
+                            Area: {rosterEntry.area.name}
+                          </div>
+                        )}
                         
                         <div className="flex items-center justify-between mt-2">
                           <div className="flex items-center space-x-1">
