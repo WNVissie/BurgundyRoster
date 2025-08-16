@@ -99,10 +99,14 @@ export function Leave() {
   };
 
   const handleConfirmAction = async () => {
-    await leaveAPI.action(selectedLeaveId, { action: actionType, action_comment: comment });
-    setShowModal(false);
-    setComment('');
-    fetchLeaveRequests();
+    try {
+      await leaveAPI.action(selectedLeaveId, { action: actionType, action_comment: comment });
+      setShowModal(false);
+      setComment('');
+      fetchLeaveRequests();
+    } catch (err) {
+      setError(err.response?.data?.error || `Failed to ${actionType} leave request`);
+    }
   };
 
   const getStatusBadge = (status) => {

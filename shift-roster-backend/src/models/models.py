@@ -215,10 +215,9 @@ class Shift(db.Model):
     end_time = db.Column(db.Time, nullable=False)
     hours = db.Column(db.Float, nullable=False)
     description = db.Column(db.Text)
-    color = db.Column(db.String(7), default='#3498db')  # Hex color for UI
+    color = db.Column(db.String(7), default='#3498db')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Relationships
     shift_rosters = db.relationship('ShiftRoster', backref='shift', lazy=True)
     
     def __repr__(self):
@@ -245,14 +244,13 @@ class ShiftRoster(db.Model):
     area_of_responsibility_id = db.Column(db.Integer, db.ForeignKey('areas_of_responsibility.id'), nullable=True)
     date = db.Column(db.Date, nullable=False)
     hours = db.Column(db.Float, nullable=False)
-    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected, accepted
+    status = db.Column(db.String(20), default='pending')
     approved_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     approved_at = db.Column(db.DateTime)
     accepted_at = db.Column(db.DateTime, nullable=True)
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Relationships
     timesheets = db.relationship('Timesheet', backref='roster', lazy=True)
     area = db.relationship('AreaOfResponsibility', backref='shift_rosters', lazy=True)
     
@@ -299,7 +297,7 @@ class Timesheet(db.Model):
     roster_id = db.Column(db.Integer, db.ForeignKey('shift_roster.id'), nullable=False)
     date = db.Column(db.Date, nullable=False)
     hours_worked = db.Column(db.Float, nullable=False)
-    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    status = db.Column(db.String(20), default='pending')
     approved_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     approved_at = db.Column(db.DateTime)
     accepted_at = db.Column(db.DateTime, nullable=True)
@@ -340,18 +338,17 @@ class LeaveRequest(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     employee_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    leave_type = db.Column(db.String(20), nullable=False)  # paid, unpaid, sick
+    leave_type = db.Column(db.String(20), nullable=False)
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
     days = db.Column(db.Integer, nullable=False)
     reason = db.Column(db.Text)
-    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    status = db.Column(db.String(20), default='pending')
     approved_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     approved_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     action_comment = db.Column(db.String(255))
 
-    # Relationships
     employee = db.relationship('User', foreign_keys=[employee_id], backref='leave_requests')
     approver = db.relationship('User', foreign_keys=[approved_by], backref='approved_leaves')
 
@@ -409,7 +406,7 @@ class CommunityPost(db.Model):
     __tablename__ = 'community_posts'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    post_type = db.Column(db.String(50), default='Question') # 'Question' or 'Announcement'
+    post_type = db.Column(db.String(50), default='Question')
     title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
