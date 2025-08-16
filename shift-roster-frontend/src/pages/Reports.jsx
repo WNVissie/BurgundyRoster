@@ -11,14 +11,26 @@ import {
   TableHeader,
   TableRow,
 } from '../components/ui/table';
-import { FileText, Search } from 'lucide-react';
+import { FileText, Search, Calendar as CalendarIcon } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
+import { Calendar } from '../components/ui/calendar';
+import { format } from 'date-fns';
+import { Alert, AlertDescription } from '../components/ui/alert';
 
 export function Reports() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // State for acceptance report
+  const [acceptanceReportData, setAcceptanceReportData] = useState([]);
+  const [acceptanceReportLoading, setAcceptanceReportLoading] = useState(false);
+  const [dateRange, setDateRange] = useState({
+    from: new Date(),
+    to: new Date(new Date().setDate(new Date().getDate() + 7)),
+  });
 
   // Data for filters
   const [skills, setSkills] = useState([]);
@@ -101,6 +113,24 @@ export function Reports() {
     }
   };
 
+  const handleAcceptanceReportSearch = async () => {
+    try {
+      setAcceptanceReportLoading(true);
+      setError(null);
+      const params = {
+        start_date: dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
+        end_date: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
+      };
+      const res = await reportsAPI.shiftAcceptance(params);
+      setAcceptanceReportData(res.data);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to generate acceptance report.');
+      setAcceptanceReportData([]);
+    } finally {
+      setAcceptanceReportLoading(false);
+    }
+  };
+
   const FilterCheckboxGroup = ({ title, items, selectedItems, setSelectedItems }) => (
     <div className="p-4 border rounded-lg">
       <h4 className="font-semibold mb-2">{title}</h4>
@@ -149,7 +179,75 @@ export function Reports() {
         </CardContent>
       </Card>
 
-      {error && <Alert variant="destructive">{error}</Alert>}
+      {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Shift Acceptance Report</CardTitle>
+          <CardDescription>View who has accepted their shifts for a given period.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-auto">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, 'LLL dd, y')} - {format(dateRange.to, 'LLL dd, y')}
+                      </>
+                    ) : (
+                      format(dateRange.from, 'LLL dd, y')
+                    )
+                  ) : (
+                    <span>Pick a date</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange?.from}
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
+            </Popover>
+            <Button onClick={handleAcceptanceReportSearch} disabled={acceptanceReportLoading}>
+              {acceptanceReportLoading ? 'Generating...' : 'Generate Report'}
+            </Button>
+          </div>
+          {acceptanceReportData.length > 0 && (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Employee</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Shift</TableHead>
+                  <TableHead>Acceptance Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {acceptanceReportData.map(entry => (
+                  <TableRow key={entry.id}>
+                    <TableCell>{entry.employee.name} {entry.employee.surname}</TableCell>
+                    <TableCell>{entry.date}</TableCell>
+                    <TableCell>{entry.shift.name}</TableCell>
+                    <TableCell>
+                      <Badge variant={entry.status === 'accepted' ? 'success' : 'secondary'}>
+                        {entry.status === 'accepted' ? 'Accepted' : 'Not Accepted'}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
