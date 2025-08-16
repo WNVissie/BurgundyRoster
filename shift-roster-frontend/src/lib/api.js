@@ -101,26 +101,26 @@ export const employeesAPI = {
 
 // Roles API
 export const rolesAPI = {
-  getAll: () => api.get('/roles'),
-  create: (data) => api.post('/roles', data),
-  update: (id, data) => api.put(`/roles/${id}`, data),
-  delete: (id) => api.delete(`/roles/${id}`),
+  getAll: () => api.get('/admin/roles'),
+  create: (data) => api.post('/admin/roles', data),
+  update: (id, data) => api.put(`/admin/roles/${id}`, data),
+  delete: (id) => api.delete(`/admin/roles/${id}`),
 };
 
 // Areas API
 export const areasAPI = {
-  getAll: () => api.get('/areas'),
-  create: (data) => api.post('/areas', data),
-  update: (id, data) => api.put(`/areas/${id}`, data),
-  delete: (id) => api.delete(`/areas/${id}`),
+  getAll: () => api.get('/admin/areas'),
+  create: (data) => api.post('/admin/areas', data),
+  update: (id, data) => api.put(`/admin/areas/${id}`, data),
+  delete: (id) => api.delete(`/admin/areas/${id}`),
 };
 
 // Skills API
 export const skillsAPI = {
-  getAll: () => api.get('/skills'),
-  create: (data) => api.post('/skills', data),
-  update: (id, data) => api.put(`/skills/${id}`, data),
-  delete: (id) => api.delete(`/skills/${id}`),
+  getAll: () => api.get('/admin/skills'),
+  create: (data) => api.post('/admin/skills', data),
+  update: (id, data) => api.put(`/admin/skills/${id}`, data),
+  delete: (id) => api.delete(`/admin/skills/${id}`),
 };
 
 // Licenses API
