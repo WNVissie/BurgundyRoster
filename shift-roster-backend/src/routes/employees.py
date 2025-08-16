@@ -115,7 +115,9 @@ def create_employee():
             alt_contact_no=data.get('alt_contact_no'),
             designation_id=data.get('designation_id'),
             role_id=data['role_id'],
-            area_of_responsibility_id=data.get('area_of_responsibility_id')
+            area_of_responsibility_id=data.get('area_of_responsibility_id'),
+            rate_type=data.get('rate_type'),
+            rate_value=data.get('rate_value')
         )
         
         db.session.add(employee)
@@ -170,7 +172,7 @@ def update_employee(employee_id):
         
         # Admin can update all fields
         if current_user.role_ref.name == 'Admin':
-            allowed_fields = ['email', 'name', 'surname', 'employee_id', 'contact_no', 'alt_contact_name', 'alt_contact_no', 'licenses', 'designation_id', 'role_id', 'area_of_responsibility_id']
+            allowed_fields = ['email', 'name', 'surname', 'employee_id', 'contact_no', 'alt_contact_name', 'alt_contact_no', 'licenses', 'designation_id', 'role_id', 'area_of_responsibility_id', 'rate_type', 'rate_value']
         # Users can only update their own contact info
         elif current_user.id == employee_id:
             allowed_fields = ['contact_no']
@@ -180,16 +182,20 @@ def update_employee(employee_id):
         # Update allowed fields
         for field in allowed_fields:
             if field in data:
-                if field == 'role_id' and data[field]:
-                    role = Role.query.get(data[field])
-                    if not role:
-                        return jsonify({'error': 'Invalid role ID'}), 400
-                
-                if field == 'area_of_responsibility_id' and data[field]:
-                    area = AreaOfResponsibility.query.get(data[field])
-                    if not area:
-                        return jsonify({'error': 'Invalid area of responsibility ID'}), 400
-                
+                if field == 'role_id':
+                    if data[field]:
+                        role = Role.query.get(data[field])
+                        if not role:
+                            return jsonify({'error': 'Invalid role ID'}), 400
+                    employee.role_id = data[field]
+                elif field == 'area_of_responsibility_id':
+                    if data[field]:
+                        area = AreaOfResponsibility.query.get(data[field])
+                        if not area:
+                            return jsonify({'error': 'Invalid area of responsibility ID'}), 400
+                    employee.area_of_responsibility_id = data[field]
+                elif field == 'designation_id':
+                    employee.designation_id = data[field]
                 else:
                     setattr(employee, field, data[field])
         

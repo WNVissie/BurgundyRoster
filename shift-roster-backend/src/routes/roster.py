@@ -123,7 +123,8 @@ def create_roster_entry():
             shift_id=data['shift_id'],
             date=roster_date,
             hours=data['hours'],
-            notes=data.get('notes', '')
+            notes=data.get('notes', ''),
+            area_of_responsibility_id=data.get('area_of_responsibility_id')
         )
         
         db.session.add(roster_entry)
@@ -188,6 +189,9 @@ def update_roster_entry(roster_id):
         
         if 'notes' in data:
             roster_entry.notes = data['notes']
+
+        if 'area_of_responsibility_id' in data:
+            roster_entry.area_of_responsibility_id = data['area_of_responsibility_id']
 
         db.session.commit()
         

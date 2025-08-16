@@ -151,6 +151,8 @@ class User(db.Model):
     designation_id = db.Column(db.Integer, db.ForeignKey('designations.designation_id'))
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False)
     area_of_responsibility_id = db.Column(db.Integer, db.ForeignKey('areas_of_responsibility.id'))
+    rate_type = db.Column(db.String(50), name='rate_type')
+    rate_value = db.Column(db.Numeric(10, 2), name='rate_-value')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -180,6 +182,7 @@ class User(db.Model):
                 'expired': days_to_expiry is not None and days_to_expiry < 0,
                 'expiring_soon': days_to_expiry is not None and days_to_expiry <= 30
             })
+
         return {
             'id': self.id,
             'google_id': self.google_id,
@@ -196,6 +199,8 @@ class User(db.Model):
             'role': self.role_ref.to_dict() if self.role_ref else None,
             'area_of_responsibility_id': self.area_of_responsibility_id,
             'area_of_responsibility': self.area_ref.to_dict() if self.area_ref else None,
+            'rate_type': self.rate_type,
+            'rate_value': float(self.rate_value) if self.rate_value is not None else None,
             'skills': [skill.to_dict() for skill in self.skills],
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
@@ -237,16 +242,19 @@ class ShiftRoster(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     employee_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     shift_id = db.Column(db.Integer, db.ForeignKey('shifts.id'), nullable=False)
+    area_of_responsibility_id = db.Column(db.Integer, db.ForeignKey('areas_of_responsibility.id'), nullable=True)
     date = db.Column(db.Date, nullable=False)
     hours = db.Column(db.Float, nullable=False)
-    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected, accepted
     approved_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     approved_at = db.Column(db.DateTime)
+    accepted_at = db.Column(db.DateTime, nullable=True)
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
     timesheets = db.relationship('Timesheet', backref='roster', lazy=True)
+    area = db.relationship('AreaOfResponsibility', backref='shift_rosters', lazy=True)
     
     def __repr__(self):
         return f'<ShiftRoster {self.employee.name} - {self.shift.name} - {self.date}>'
@@ -265,6 +273,8 @@ class ShiftRoster(db.Model):
             } if self.employee else None,
             'shift_id': self.shift_id,
             'shift': self.shift.to_dict() if self.shift else None,
+            'area_of_responsibility_id': self.area_of_responsibility_id,
+            'area': self.area.to_dict() if self.area else None,
             'date': self.date.isoformat() if self.date else None,
             'hours': self.hours,
             'status': self.status,
@@ -275,8 +285,10 @@ class ShiftRoster(db.Model):
                 'surname': self.approver.surname
             } if self.approver else None,
             'approved_at': self.approved_at.isoformat() if self.approved_at else None,
+            'accepted_at': self.accepted_at.isoformat() if self.accepted_at else None,
             'notes': self.notes,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'timesheet': self.timesheets[0].to_dict() if self.timesheets else None
         }
 
 class Timesheet(db.Model):
@@ -308,7 +320,6 @@ class Timesheet(db.Model):
                 'employee_id': self.employee.employee_id
             } if self.employee else None,
             'roster_id': self.roster_id,
-            'roster': self.roster.to_dict() if self.roster else None,
             'date': self.date.isoformat() if self.date else None,
             'hours_worked': self.hours_worked,
             'status': self.status,

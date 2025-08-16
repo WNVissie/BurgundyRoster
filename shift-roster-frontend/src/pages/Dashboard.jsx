@@ -13,7 +13,9 @@ import {
   AlertCircle,
   CheckCircle,
   UserCheck,
-  UserX
+  UserX,
+  XCircle,
+  Plus
 } from 'lucide-react';
 import '../App.css';
 

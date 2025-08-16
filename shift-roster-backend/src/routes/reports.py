@@ -83,6 +83,35 @@ def employee_search_report():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@reports_bp.route('/shift-acceptance', methods=['GET'])
+@jwt_required()
+@manager_required
+def shift_acceptance_report():
+    """
+    Report on employees who have accepted or not yet accepted their shifts.
+    """
+    try:
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
+
+        query = ShiftRoster.query.filter(
+            ShiftRoster.status.in_(['approved', 'accepted'])
+        )
+
+        if start_date_str:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            query = query.filter(ShiftRoster.date >= start_date)
+        if end_date_str:
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            query = query.filter(ShiftRoster.date <= end_date)
+
+        roster_entries = query.order_by(ShiftRoster.date, ShiftRoster.employee_id).all()
+
+        return jsonify([entry.to_dict() for entry in roster_entries]), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @reports_bp.route('/employee-history/<int:employee_id>', methods=['GET'])
 @jwt_required()
 @manager_required

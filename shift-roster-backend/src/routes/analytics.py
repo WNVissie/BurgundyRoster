@@ -96,6 +96,75 @@ def get_dashboard_metrics():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@analytics_bp.route('/skill-distribution', methods=['GET'])
+@jwt_required()
+def get_skill_distribution():
+    """Get the distribution of skills across all employees"""
+    try:
+        current_user = get_current_user()
+        if current_user.role_ref.name not in ['Admin', 'Manager']:
+            return jsonify({'error': 'Insufficient permissions'}), 403
+
+        # Query to count employees for each skill
+        skill_counts = db.session.query(
+            Skill.name,
+            func.count(User.id).label('employee_count')
+        ).join(User.skills).group_by(Skill.id, Skill.name).all()
+
+        result = []
+        for skill_name, count in skill_counts:
+            result.append({
+                'skill': skill_name,
+                'employees': count
+            })
+
+        return jsonify({'data': result}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@analytics_bp.route('/weekly-approval-trends', methods=['GET'])
+@jwt_required()
+def get_weekly_approval_trends():
+    """Get weekly shift approval trends for the last 12 weeks"""
+    try:
+        current_user = get_current_user()
+        if current_user.role_ref.name not in ['Admin', 'Manager']:
+            return jsonify({'error': 'Insufficient permissions'}), 403
+
+        today = date.today()
+        # Go back to the beginning of the week (Monday) for the start date
+        start_of_period = today - timedelta(days=today.weekday()) - timedelta(weeks=11)
+
+        # Query weekly trends
+        # Use func.strftime with '%Y-%W' to group by week number
+        # This works for SQLite and PostgreSQL, though syntax can vary for other DBs
+        weekly_data = db.session.query(
+            func.strftime('%Y-%W', ShiftRoster.date).label('week'),
+            ShiftRoster.status,
+            func.count(ShiftRoster.id).label('count')
+        ).filter(
+            ShiftRoster.date >= start_of_period
+        ).group_by('week', ShiftRoster.status).order_by('week').all()
+
+        # Process data into a structured format
+        trends = {}
+        for week_str, status, count in weekly_data:
+            if week_str not in trends:
+                trends[week_str] = {'week': week_str, 'approved': 0, 'pending': 0, 'rejected': 0}
+            if status in trends[week_str]:
+                trends[week_str][status] = count
+
+        # Sort by week and convert to list
+        sorted_trends = sorted(trends.values(), key=lambda x: x['week'])
+
+        return jsonify({'data': sorted_trends}), 200
+
+    except Exception as e:
+        # For debugging, it can be helpful to log the error
+        # print(f"Error in get_weekly_approval_trends: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @analytics_bp.route('/employees-by-shift', methods=['GET'])
 @jwt_required()
 def get_employees_by_shift():
@@ -183,26 +252,47 @@ def get_employees_by_role():
 @analytics_bp.route('/employees-by-area', methods=['GET'])
 @jwt_required()
 def get_employees_by_area():
-    """Get employee count by area of responsibility"""
+    """Get employee and shift count by area of responsibility"""
     try:
         current_user = get_current_user()
         if current_user.role_ref.name not in ['Admin', 'Manager']:
             return jsonify({'error': 'Insufficient permissions'}), 403
         
-        # Query employee count by area
-        area_counts = db.session.query(
-            AreaOfResponsibility.name,
+        # Subquery for employee counts per area
+        emp_counts_sub = db.session.query(
+            User.area_of_responsibility_id,
             func.count(User.id).label('employee_count')
-        ).outerjoin(User).group_by(AreaOfResponsibility.id, AreaOfResponsibility.name).all()
-        
-        result = []
-        for area_name, count in area_counts:
-            result.append({
-                'area_name': area_name,
-                'employee_count': count
+        ).group_by(User.area_of_responsibility_id).subquery()
+
+        # Subquery for shift counts per area
+        shift_counts_sub = db.session.query(
+            User.area_of_responsibility_id,
+            func.count(ShiftRoster.id).label('shift_count')
+        ).join(ShiftRoster, User.id == ShiftRoster.employee_id)\
+         .group_by(User.area_of_responsibility_id).subquery()
+
+        # Main query joining areas with subqueries
+        results = db.session.query(
+            AreaOfResponsibility.name,
+            func.coalesce(emp_counts_sub.c.employee_count, 0),
+            func.coalesce(shift_counts_sub.c.shift_count, 0)
+        ).outerjoin(emp_counts_sub, AreaOfResponsibility.id == emp_counts_sub.c.area_of_responsibility_id)\
+         .outerjoin(shift_counts_sub, AreaOfResponsibility.id == shift_counts_sub.c.area_of_responsibility_id)\
+         .group_by(
+            AreaOfResponsibility.name,
+            emp_counts_sub.c.employee_count,
+            shift_counts_sub.c.shift_count
+         ).all()
+
+        result_data = []
+        for name, emp_count, shift_count in results:
+            result_data.append({
+                'name': name,
+                'employees': emp_count,
+                'shifts': shift_count
             })
         
-        return jsonify({'data': result}), 200
+        return jsonify({'data': result_data}), 200
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500

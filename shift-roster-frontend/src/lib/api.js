@@ -101,33 +101,33 @@ export const employeesAPI = {
 
 // Roles API
 export const rolesAPI = {
-  getAll: () => api.get('/roles'),
-  create: (data) => api.post('/roles', data),
-  update: (id, data) => api.put(`/roles/${id}`, data),
-  delete: (id) => api.delete(`/roles/${id}`),
+  getAll: () => api.get('/admin/roles'),
+  create: (data) => api.post('/admin/roles', data),
+  update: (id, data) => api.put(`/admin/roles/${id}`, data),
+  delete: (id) => api.delete(`/admin/roles/${id}`),
 };
 
 // Areas API
 export const areasAPI = {
-  getAll: () => api.get('/areas'),
-  create: (data) => api.post('/areas', data),
-  update: (id, data) => api.put(`/areas/${id}`, data),
-  delete: (id) => api.delete(`/areas/${id}`),
+  getAll: () => api.get('/admin/areas'),
+  create: (data) => api.post('/admin/areas', data),
+  update: (id, data) => api.put(`/admin/areas/${id}`, data),
+  delete: (id) => api.delete(`/admin/areas/${id}`),
 };
 
 // Skills API
 export const skillsAPI = {
-  getAll: () => api.get('/skills'),
-  create: (data) => api.post('/skills', data),
-  update: (id, data) => api.put(`/skills/${id}`, data),
-  delete: (id) => api.delete(`/skills/${id}`),
+  getAll: () => api.get('/admin/skills'),
+  create: (data) => api.post('/admin/skills', data),
+  update: (id, data) => api.put(`/admin/skills/${id}`, data),
+  delete: (id) => api.delete(`/admin/skills/${id}`),
 };
 
 // Licenses API
 export const licensesAPI = {
-  getAll: () => api.get('/licenses'),
-  create: (data) => api.post('/licenses', data),
-  update: (id, data) => api.put(`/licenses/${id}`, data),
+  getAll: () => api.get('/licenses/'),
+  create: (data) => api.post('/licenses/', data),
+  update: (id, data) => api.put(`/licenses/${id}`),
   delete: (id) => api.delete(`/licenses/${id}`),
 };
 
@@ -143,6 +143,7 @@ export const leaveAPI = {
 export const reportsAPI = {
   employeeSearch: (params) => api.get('/reports/employee-search', { params }),
   getEmployeeHistory: (employeeId) => api.get(`/reports/employee-history/${employeeId}`),
+  shiftAcceptance: (params) => api.get('/reports/shift-acceptance', { params }),
 };
 
 // Designations API
@@ -187,6 +188,7 @@ export const analyticsAPI = {
   getEmployeesByArea: () => api.get('/analytics/employees-by-area'),
   getLeaveSummary: (params) => api.get('/analytics/leave-summary', { params }),
   skillSearch: (params) => api.get('/analytics/skill-search', { params }),
+  getSkillDistribution: () => api.get('/analytics/skill-distribution'),
   getShiftCoverage: (params) => api.get('/analytics/shift-coverage', { params }),
   getWeeklyApprovalTrends: () => api.get('/analytics/weekly-approval-trends'),
 };
@@ -196,7 +198,7 @@ export const timesheetsAPI = {
   generate: (payload) => api.post('/timesheets/generate', payload),
   getAll: (params) => api.get('/timesheets', { params }),
   approve: (id) => api.post(`/timesheets/${id}/approve`),
-  reject: (id) => api.post(`/timesheets/${id}/reject`),
+  reject: (id, data) => api.post(`/timesheets/${id}/reject`, data),
   accept: (id) => api.post(`/timesheets/${id}/accept`),
 };
 

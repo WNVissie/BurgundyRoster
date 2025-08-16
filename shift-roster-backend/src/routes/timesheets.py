@@ -8,14 +8,20 @@ timesheets_bp = Blueprint('timesheets', __name__)
 
 # GET endpoint to fetch timesheets
 @timesheets_bp.route('', methods=['GET'])
+@jwt_required()
 def get_timesheets():
     """Fetch timesheets, optionally filtered by date range and/or employee, with employee name/surname."""
+    current_user = get_current_user()
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
     employee_id = request.args.get('employee_id')
 
     query = db.session.query(Timesheet, User).join(User, Timesheet.employee_id == User.id)
-    if employee_id:
+
+    # If user is an employee, they can only see their own timesheets
+    if current_user.role_ref.name == 'Employee':
+        query = query.filter(Timesheet.employee_id == current_user.id)
+    elif employee_id: # Admins/Managers can filter by employee
         query = query.filter(Timesheet.employee_id == int(employee_id))
 
     if start_date:
@@ -97,10 +103,13 @@ def generate_timesheets():
 @jwt_required()
 def approve_timesheet(id):
     """Approve a timesheet by ID."""
+    current_user = get_current_user()
     ts = Timesheet.query.get(id)
     if not ts:
         return jsonify({'error': 'Timesheet not found'}), 404
     ts.status = 'approved'
+    ts.approved_by = current_user.id
+    ts.approved_at = datetime.utcnow()
     db.session.commit()
     return jsonify({'message': 'Timesheet approved', 'timesheet': ts.to_dict()}), 200
 
@@ -119,9 +128,15 @@ def accept_timesheet(id):
 @jwt_required()
 def reject_timesheet(id):
     """Reject a timesheet by ID."""
+    current_user = get_current_user()
+    data = request.get_json()
     ts = Timesheet.query.get(id)
     if not ts:
         return jsonify({'error': 'Timesheet not found'}), 404
     ts.status = 'rejected'
+    ts.approved_by = current_user.id
+    ts.approved_at = datetime.utcnow()
+    if data and 'notes' in data:
+        ts.notes = data['notes']
     db.session.commit()
     return jsonify({'message': 'Timesheet rejected', 'timesheet': ts.to_dict()}), 200

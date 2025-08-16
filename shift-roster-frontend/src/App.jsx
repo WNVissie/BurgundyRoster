@@ -5,7 +5,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
 import { Login } from './pages/Login';
-const ReportsPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Reports</h1><p>Coming soon...</p></div>;
+import { Reports } from './pages/Reports';
 import { Dashboard } from './pages/Dashboard';
 import { Employees } from './pages/Employees';
 import { Roster } from './pages/Roster';
@@ -92,7 +92,7 @@ function App() {
             <Route path="/reports" element={
               <ProtectedRoute requiredRole="Manager">
                 <Layout>
-                  <ReportsPage />
+                  <Reports />
                 </Layout>
               </ProtectedRoute>
             } />

@@ -234,7 +234,7 @@ export function Leave() {
                 <TableHead>Days</TableHead>
                 <TableHead>Reason</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Action Comment</TableHead> {/* Add this line */}
+                <TableHead>Action Comment</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -249,7 +249,7 @@ export function Leave() {
                   <TableCell>{req.days}</TableCell>
                   <TableCell className="max-w-xs truncate">{req.reason}</TableCell>
                   <TableCell>{getStatusBadge(req.status)}</TableCell>
-                  <TableCell>{req.action_comment || ''}</TableCell> {/* Add this line */}
+                  <TableCell>{req.action_comment || ''}</TableCell>
                   <TableCell>
                     <div className="flex space-x-1">
                       {isManager && req.status === 'pending' && (

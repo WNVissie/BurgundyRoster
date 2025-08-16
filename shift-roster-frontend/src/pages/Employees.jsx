@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { employeesAPI, rolesAPI, areasAPI, skillsAPI } from '../lib/api';
+import { employeesAPI, rolesAPI, areasAPI, skillsAPI, designationsAPI } from '../lib/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -57,6 +57,7 @@ export function Employees() {
   const [roles, setRoles] = useState([]);
   const [areas, setAreas] = useState([]);
   const [skills, setSkills] = useState([]);
+  const [designations, setDesignations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,9 +72,11 @@ export function Employees() {
     employee_id: '',
     contact_no: '',
   email: '',
-  designation: '',
+  designation_id: '',
     role_id: '',
-    area_of_responsibility_id: ''
+    area_of_responsibility_id: '',
+    rate_type: '',
+    rate_value: ''
   });
   const [selectedSkills, setSelectedSkills] = useState([]); // array of skill IDs (string)
   const [initialSelectedSkills, setInitialSelectedSkills] = useState([]);
@@ -88,18 +91,18 @@ export function Employees() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [employeesRes, rolesRes, areasRes, skillsRes] = await Promise.all([
+      const [employeesRes, rolesRes, areasRes, skillsRes, designationsRes] = await Promise.all([
         employeesAPI.getAll(),
         rolesAPI.getAll(),
         areasAPI.getAll(),
-        skillsAPI.getAll()
-        // Remove licensesAPI.getAll()
+        skillsAPI.getAll(),
+        designationsAPI.getAll()
       ]);
       setEmployees(employeesRes.data.employees || []);
       setRoles(rolesRes.data.roles || []);
       setAreas(areasRes.data.areas || []);
       setSkills(skillsRes.data.skills || []);
-      // Remove setLicenseOptions(licensesRes.data || []);
+      setDesignations(designationsRes.data || []);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to fetch data');
     } finally {
@@ -119,9 +122,11 @@ export function Employees() {
           contact_no: formData.contact_no,
           ...(formData.alt_contact_name ? { alt_contact_name: formData.alt_contact_name } : {}),
           ...(formData.alt_contact_no ? { alt_contact_no: formData.alt_contact_no } : {}),
-          ...(formData.designation ? { designation: formData.designation } : {}),
+          ...(formData.designation_id ? { designation_id: parseInt(formData.designation_id, 10) } : {}),
           ...(formData.role_id ? { role_id: parseInt(formData.role_id, 10) } : {}),
           ...(formData.area_of_responsibility_id ? { area_of_responsibility_id: parseInt(formData.area_of_responsibility_id, 10) } : {}),
+          rate_type: formData.rate_type,
+          rate_value: formData.rate_value,
         };
         await employeesAPI.update(editingEmployee.id, updateData);
 
@@ -173,9 +178,11 @@ export function Employees() {
           contact_no: formData.contact_no,
           ...(formData.alt_contact_name ? { alt_contact_name: formData.alt_contact_name } : {}),
           ...(formData.alt_contact_no ? { alt_contact_no: formData.alt_contact_no } : {}),
-          ...(formData.designation ? { designation: formData.designation } : {}),
+          ...(formData.designation_id ? { designation_id: parseInt(formData.designation_id, 10) } : {}),
           ...(formData.role_id ? { role_id: parseInt(formData.role_id, 10) } : {}),
           ...(formData.area_of_responsibility_id ? { area_of_responsibility_id: parseInt(formData.area_of_responsibility_id, 10) } : {}),
+          rate_type: formData.rate_type,
+          rate_value: formData.rate_value,
         };
         const res = await employeesAPI.create(createData);
         const newId = res?.data?.employee?.id;
@@ -201,9 +208,11 @@ export function Employees() {
         alt_contact_name: '',
         alt_contact_no: '',
         email: '',
-        designation: '',
+        designation_id: '',
         role_id: '',
-        area_of_responsibility_id: ''
+        area_of_responsibility_id: '',
+        rate_type: '',
+        rate_value: ''
       });
       setSelectedSkills([]);
       setInitialSelectedSkills([]);
@@ -226,9 +235,11 @@ export function Employees() {
       alt_contact_name: employee.alt_contact_name || '',
       alt_contact_no: employee.alt_contact_no || '',
       email: employee.email,
-      designation: employee.designation || '',
+      designation_id: (employee.designation_id ?? '').toString(),
       role_id: employee.role_id.toString(),
-      area_of_responsibility_id: (employee.area_of_responsibility_id ?? '').toString()
+      area_of_responsibility_id: (employee.area_of_responsibility_id ?? '').toString(),
+      rate_type: employee.rate_type || '',
+      rate_value: employee.rate_value || ''
     });
     // Skills selection
     const currentSkills = (employee.skills || []).map(s => s.id.toString());
@@ -312,9 +323,11 @@ export function Employees() {
                   employee_id: '',
                   contact_no: '',
                   email: '',
-                  designation: '',
+                  designation_id: '',
                   role_id: '',
-                  area_of_responsibility_id: ''
+                  area_of_responsibility_id: '',
+                  rate_type: '',
+                  rate_value: ''
                 });
                 setSelectedSkills([]);
                 setInitialSelectedSkills([]);
@@ -326,7 +339,7 @@ export function Employees() {
                 Add Employee
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-2xl">
               <DialogHeader>
                 <DialogTitle>
                   {editingEmployee ? 'Edit Employee' : 'Add New Employee'}
@@ -390,12 +403,18 @@ export function Employees() {
 
                 <div>
                   <Label htmlFor="designation">Designation</Label>
-                  <Input
-                    id="designation"
-                    value={formData.designation || ''}
-                    onChange={(e) => setFormData({...formData, designation: e.target.value})}
-                    placeholder="e.g. Senior Barista, Shift Lead"
-                  />
+                  <Select value={formData.designation_id} onValueChange={(value) => setFormData({...formData, designation_id: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a designation" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {designations.map((designation) => (
+                        <SelectItem key={designation.designation_id} value={designation.designation_id.toString()}>
+                          {designation.designation_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -476,7 +495,32 @@ export function Employees() {
                   <AccordionItem value="rates">
                     <AccordionTrigger>Rates</AccordionTrigger>
                     <AccordionContent>
-                      <p className="text-sm text-gray-500">Rate management will be implemented here.</p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="rate_type">Rate Type</Label>
+                          <Select value={formData.rate_type} onValueChange={(value) => setFormData({...formData, rate_type: value})}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a rate type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Monthly">Monthly</SelectItem>
+                              <SelectItem value="Weekly">Weekly</SelectItem>
+                              <SelectItem value="Daily">Daily</SelectItem>
+                              <SelectItem value="Hourly">Hourly</SelectItem>
+                              <SelectItem value="Casual">Casual</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="rate_value">Rate Value (ZAR)</Label>
+                          <Input
+                            id="rate_value"
+                            type="number"
+                            value={formData.rate_value}
+                            onChange={(e) => setFormData({...formData, rate_value: e.target.value})}
+                          />
+                        </div>
+                      </div>
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
@@ -741,4 +785,3 @@ export function Employees() {
     </div>
   );
 }
-

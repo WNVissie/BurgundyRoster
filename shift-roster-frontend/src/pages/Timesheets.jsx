@@ -1,21 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { Table } from '../components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Button } from '../components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
+import { Textarea } from '../components/ui/textarea';
+import { Badge } from '../components/ui/badge';
 import api, { timesheetsAPI } from '../lib/api';
 import { format } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
-import { DragDropRoster } from '../components/roster/DragDropRoster';
-
 
 const Timesheets = () => {
   const { user, isEmployee, isAdmin, isManager } = useAuth();
-  console.log('User:', user);
-  console.log('isEmployee:', isEmployee());
   const [timesheets, setTimesheets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [selectedTimesheet, setSelectedTimesheet] = useState(null);
+  const [rejectionNotes, setRejectionNotes] = useState('');
 
   useEffect(() => {
     fetchTimesheets();
@@ -67,6 +69,25 @@ const Timesheets = () => {
     }
   }
 
+  const handleApprove = async (id) => {
+    await timesheetsAPI.approve(id);
+    fetchTimesheets();
+  };
+
+  const openRejectDialog = (timesheet) => {
+    setSelectedTimesheet(timesheet);
+    setIsRejectDialogOpen(true);
+  };
+
+  const handleReject = async () => {
+    if (!selectedTimesheet) return;
+    await timesheetsAPI.reject(selectedTimesheet.id, { notes: rejectionNotes });
+    setIsRejectDialogOpen(false);
+    setRejectionNotes('');
+    setSelectedTimesheet(null);
+    fetchTimesheets();
+  };
+
   const handleExportExcel = async () => {
     try {
       const params = {
@@ -82,11 +103,8 @@ const Timesheets = () => {
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Failed to export timesheets to Excel", err);
-      // You might want to show an error message to the user
     }
   };
-
-  console.log('Timesheets:', timesheets);
 
   return (
     <div>
@@ -111,43 +129,88 @@ const Timesheets = () => {
         <div>Loading...</div>
       ) : (
         <>
-          {(isAdmin() || isManager()) ? (
-            <TraditionalShiftView shifts={timesheets} />
-          ) : (
-            <TraditionalShiftView shifts={timesheets.filter(shift => shift.employee_id === user.id)} />
-          )}
+          <TraditionalShiftView
+            shifts={timesheets}
+            isManager={isAdmin() || isManager()}
+            onApprove={handleApprove}
+            onReject={openRejectDialog}
+          />
         </>
       )}
+
+      <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Timesheet</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              value={rejectionNotes}
+              onChange={(e) => setRejectionNotes(e.target.value)}
+              placeholder="Add rejection notes..."
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRejectDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleReject}>Confirm Rejection</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-const TraditionalShiftView = ({ shifts }) => {
+const TraditionalShiftView = ({ shifts, isManager, onApprove, onReject }) => {
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'approved':
+      case 'accepted':
+        return <Badge variant="success">{status}</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive">{status}</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
   return (
     <div style={{ marginTop: 24 }}>
       {shifts.length === 0 ? (
         <div>No timesheets found.</div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-          <thead>
-            <tr style={{ background: '#f3f4f6' }}>
-              <th style={{ padding: '10px', borderBottom: '1px solid #eee', textAlign: 'left' }}>Date</th>
-              <th style={{ padding: '10px', borderBottom: '1px solid #eee', textAlign: 'left' }}>Employee</th>
-              <th style={{ padding: '10px', borderBottom: '1px solid #eee', textAlign: 'left' }}>Hours Worked</th>
-              <th style={{ padding: '10px', borderBottom: '1px solid #eee', textAlign: 'left' }}>Status</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Employee</TableHead>
+              <TableHead>Hours Worked</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Notes</TableHead>
+              {isManager && <TableHead>Actions</TableHead>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {shifts.map(shift => (
-              <tr key={shift.id}>
-                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{shift.date}</td>
-                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{shift.employee_name} {shift.employee_surname}</td>
-                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{shift.hours_worked ?? shift.hours ?? ''}</td>
-                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{shift.status}</td>
-              </tr>
+              <TableRow key={shift.id}>
+                <TableCell>{shift.date}</TableCell>
+                <TableCell>{shift.employee_name} {shift.employee_surname}</TableCell>
+                <TableCell>{shift.hours_worked ?? shift.hours ?? ''}</TableCell>
+                <TableCell>{getStatusBadge(shift.status)}</TableCell>
+                <TableCell>{shift.notes}</TableCell>
+                {isManager && (
+                  <TableCell>
+                    {shift.status === 'pending' && (
+                      <div className="flex space-x-2">
+                        <Button size="sm" onClick={() => onApprove(shift.id)}>Approve</Button>
+                        <Button size="sm" variant="destructive" onClick={() => onReject(shift)}>Reject</Button>
+                      </div>
+                    )}
+                  </TableCell>
+                )}
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       )}
     </div>
   );
