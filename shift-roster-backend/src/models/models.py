@@ -320,7 +320,6 @@ class Timesheet(db.Model):
                 'employee_id': self.employee.employee_id
             } if self.employee else None,
             'roster_id': self.roster_id,
-            'roster': self.roster.to_dict() if self.roster else None,
             'date': self.date.isoformat() if self.date else None,
             'hours_worked': self.hours_worked,
             'status': self.status,
