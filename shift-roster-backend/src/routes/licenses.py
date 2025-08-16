@@ -6,8 +6,6 @@ from datetime import datetime
 
 licenses_bp = Blueprint('licenses', __name__)
 
-# --- License Type Management ---
-
 @licenses_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_licenses():
@@ -69,7 +67,6 @@ def delete_license(license_id):
         if not license:
             return jsonify({'error': 'License not found'}), 404
 
-        # Check if license is in use
         if EmployeeLicense.query.filter_by(license_id=license_id).first():
             return jsonify({'error': 'Cannot delete license as it is assigned to one or more employees'}), 400
 
@@ -80,5 +77,3 @@ def delete_license(license_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
-
-# Employee license assignment is handled in employees.py

@@ -83,28 +83,28 @@ export const employeesAPI = {
   removeSkill: (employeeId, skillId) => api.delete(`/employees/${employeeId}/skills/${skillId}`),
   getEmployeeLicenses: (employeeId) => api.get(`/employees/${employeeId}/licenses`),
   addLicense: (employeeId, payload) => api.post(`/employees/${employeeId}/licenses`, payload),
-  updateLicense: (employeeId, licenseId, payload) => api.put(`/employees/${employeeId}/licenses/${licenseId}`, payload),
+  updateLicense: (employeeId, licenseId, payload) => api.put(`/employees/${employeeId}/licenses/${licenseId}`),
   removeLicense: (employeeId, licenseId) => api.delete(`/employees/${employeeId}/licenses/${licenseId}`),
 };
 
 export const rolesAPI = {
-  getAll: () => api.get('/admin/roles'),
+  getAll: () => api.get('/admin/roles/'),
   create: (data) => api.post('/admin/roles', data),
-  update: (id, data) => api.put(`/admin/roles/${id}`, data),
+  update: (id, data) => api.put(`/admin/roles/${id}`),
   delete: (id) => api.delete(`/admin/roles/${id}`),
 };
 
 export const areasAPI = {
-  getAll: () => api.get('/admin/areas'),
+  getAll: () => api.get('/admin/areas/'),
   create: (data) => api.post('/admin/areas', data),
-  update: (id, data) => api.put(`/admin/areas/${id}`, data),
+  update: (id, data) => api.put(`/admin/areas/${id}`),
   delete: (id) => api.delete(`/admin/areas/${id}`),
 };
 
 export const skillsAPI = {
-  getAll: () => api.get('/admin/skills'),
+  getAll: () => api.get('/admin/skills/'),
   create: (data) => api.post('/admin/skills', data),
-  update: (id, data) => api.put(`/admin/skills/${id}`, data),
+  update: (id, data) => api.put(`/admin/skills/${id}`),
   delete: (id) => api.delete(`/admin/skills/${id}`),
 };
 
@@ -129,7 +129,7 @@ export const reportsAPI = {
 };
 
 export const designationsAPI = {
-  getAll: () => api.get('/designations'),
+  getAll: () => api.get('/designations/'),
 };
 
 export const communityAPI = {
@@ -141,10 +141,10 @@ export const communityAPI = {
 };
 
 export const shiftsAPI = {
-  getAll: () => api.get('/shifts'),
-  create: (data) => api.post('/shifts', data),
-  update: (id, data) => api.put(`/shifts/${id}`, data),
-  delete: (id) => api.delete(`/shifts/${id}`),
+  getAll: () => api.get('/admin/shifts/'),
+  create: (data) => api.post('/admin/shifts', data),
+  update: (id, data) => api.put(`/admin/shifts/${id}`),
+  delete: (id) => api.delete(`/admin/shifts/${id}`),
   accept: (id) => api.post(`/shifts/${id}/accept`),
 };
 
