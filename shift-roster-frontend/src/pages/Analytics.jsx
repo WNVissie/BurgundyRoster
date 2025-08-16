@@ -134,8 +134,8 @@ export function Analytics() {
       setEmployeesByRole(roleData);
 
       // Transform area data if available
-      if (areaRes.data && areaRes.data.data) {
-        setEmployeesByArea(areaRes.data.data);
+      if (areaRes.data && areaRes.data.length > 0) {
+        setEmployeesByArea(areaRes.data);
       }
 
       // Set shift utilization data
@@ -157,7 +157,10 @@ export function Analytics() {
 
   const fetchSkillDistribution = async () => {
     try {
-      const res = await analyticsAPI.getSkillDistribution();
+      const res = await analyticsAPI.skillSearch({
+        start_date: dateRange.start,
+        end_date: dateRange.end
+      });
       setSkillDistribution(res.data.data || []);
     } catch (err) {
       setSkillDistribution([]);

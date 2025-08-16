@@ -349,7 +349,7 @@ class LeaveRequest(db.Model):
     approved_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     approved_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    action_comment = db.Column(db.String(255))  # <-- Add this line
+    action_comment = db.Column(db.String(255))
 
     # Relationships
     employee = db.relationship('User', foreign_keys=[employee_id], backref='leave_requests')

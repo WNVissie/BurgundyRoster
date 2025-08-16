@@ -17,24 +17,19 @@ def get_roster():
         if not current_user:
             return jsonify({'error': 'User not found. Please login again.'}), 401
         
-        # Get query parameters
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         employee_id = request.args.get('employee_id', type=int)
         shift_id = request.args.get('shift_id', type=int)
         status = request.args.get('status')
         
-        # Build query based on user role
         if current_user.role_ref.name == 'Admin':
             query = ShiftRoster.query
         elif current_user.role_ref.name == 'Manager':
-            # Managers can see all rosters (for approval)
             query = ShiftRoster.query
         else:
-            # Employees can only see their own rosters
             query = ShiftRoster.query.filter(ShiftRoster.employee_id == current_user.id)
         
-        # Apply filters
         if start_date:
             try:
                 start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
@@ -58,7 +53,6 @@ def get_roster():
         if status:
             query = query.filter(ShiftRoster.status == status)
         
-        # Order by date and shift start time
         roster_entries = query.join(Shift).order_by(ShiftRoster.date, Shift.start_time).all()
         
         return jsonify({
@@ -78,35 +72,29 @@ def create_roster_entry():
         if not current_user:
             return jsonify({'error': 'User not found. Please login again.'}), 401
         
-        # Check permissions
         if current_user.role_ref.name not in ['Admin', 'Manager']:
             return jsonify({'error': 'Insufficient permissions'}), 403
         
         data = request.get_json()
         
-        # Validate required fields
         required_fields = ['employee_id', 'shift_id', 'date', 'hours']
         for field in required_fields:
             if field not in data:
                 return jsonify({'error': f'{field} is required'}), 400
         
-        # Validate employee exists
         employee = User.query.get(data['employee_id'])
         if not employee:
             return jsonify({'error': 'Employee not found'}), 404
         
-        # Validate shift exists
         shift = Shift.query.get(data['shift_id'])
         if not shift:
             return jsonify({'error': 'Shift not found'}), 404
         
-        # Parse date
         try:
             roster_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
         except ValueError:
             return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
         
-        # Check for existing roster entry
         existing_entry = ShiftRoster.query.filter(
             and_(
                 ShiftRoster.employee_id == data['employee_id'],
@@ -117,7 +105,6 @@ def create_roster_entry():
         if existing_entry:
             return jsonify({'error': 'Employee already has a shift scheduled for this date'}), 400
         
-        # Create roster entry
         roster_entry = ShiftRoster(
             employee_id=data['employee_id'],
             shift_id=data['shift_id'],
@@ -130,7 +117,6 @@ def create_roster_entry():
         db.session.add(roster_entry)
         db.session.commit()
 
-        # Log activity
         log_activity(
             current_user.id,
             'create_roster',
@@ -155,7 +141,6 @@ def update_roster_entry(roster_id):
         if not current_user:
             return jsonify({'error': 'User not found. Please login again.'}), 401
         
-        # Check permissions
         if current_user.role_ref.name not in ['Admin', 'Manager']:
             return jsonify({'error': 'Insufficient permissions'}), 403
         
@@ -165,7 +150,6 @@ def update_roster_entry(roster_id):
         
         data = request.get_json()
         
-        # Update allowed fields
         if 'employee_id' in data:
             employee = User.query.get(data['employee_id'])
             if not employee:
@@ -213,7 +197,6 @@ def delete_roster_entry(roster_id):
         if not current_user:
             return jsonify({'error': 'User not found. Please login again.'}), 401
         
-        # Check permissions
         if current_user.role_ref.name not in ['Admin', 'Manager']:
             return jsonify({'error': 'Insufficient permissions'}), 403
         
@@ -221,7 +204,6 @@ def delete_roster_entry(roster_id):
         if not roster_entry:
             return jsonify({'error': 'Roster entry not found'}), 404
         
-        # Check if there are associated timesheets
         if roster_entry.timesheets:
             return jsonify({'error': 'Cannot delete roster entry with associated timesheets'}), 400
         
@@ -243,7 +225,6 @@ def approve_roster_entry(roster_id):
         if not current_user:
             return jsonify({'error': 'User not found. Please login again.'}), 401
         
-        # Check permissions
         if current_user.role_ref.name not in ['Admin', 'Manager']:
             return jsonify({'error': 'Insufficient permissions'}), 403
         
@@ -252,7 +233,7 @@ def approve_roster_entry(roster_id):
             return jsonify({'error': 'Roster entry not found'}), 404
         
         data = request.get_json()
-        action = data.get('action')  # 'approve' or 'reject'
+        action = data.get('action')
         
         if action not in ['approve', 'reject']:
             return jsonify({'error': 'Action must be either "approve" or "reject"'}), 400
@@ -264,7 +245,6 @@ def approve_roster_entry(roster_id):
         if 'notes' in data:
             roster_entry.notes = data['notes']
 
-        # If approving, create a timesheet entry
         if action == 'approve':
             existing_timesheet = Timesheet.query.filter_by(roster_id=roster_entry.id).first()
             if not existing_timesheet:
@@ -273,12 +253,11 @@ def approve_roster_entry(roster_id):
                     roster_id=roster_entry.id,
                     date=roster_entry.date,
                     hours_worked=roster_entry.hours,
-                    status='pending', # Or 'approved' if it should be auto-approved
+                    status='pending',
                     created_at=datetime.utcnow()
                 )
                 db.session.add(new_timesheet)
 
-        # Log activity before committing
         log_activity(
             current_user.id,
             f'{action}_roster',
@@ -303,7 +282,6 @@ def create_bulk_roster():
     try:
         current_user = get_current_user()
         
-        # Check permissions
         if current_user.role_ref.name not in ['Admin', 'Manager']:
             return jsonify({'error': 'Insufficient permissions'}), 403
         
@@ -318,14 +296,12 @@ def create_bulk_roster():
         
         for i, entry_data in enumerate(entries):
             try:
-                # Validate required fields
                 required_fields = ['employee_id', 'shift_id', 'date', 'hours']
                 for field in required_fields:
                     if field not in entry_data:
                         errors.append(f'Entry {i+1}: {field} is required')
                         continue
                 
-                # Validate employee and shift
                 employee = User.query.get(entry_data['employee_id'])
                 if not employee:
                     errors.append(f'Entry {i+1}: Employee not found')
@@ -336,14 +312,12 @@ def create_bulk_roster():
                     errors.append(f'Entry {i+1}: Shift not found')
                     continue
                 
-                # Parse date
                 try:
                     roster_date = datetime.strptime(entry_data['date'], '%Y-%m-%d').date()
                 except ValueError:
                     errors.append(f'Entry {i+1}: Invalid date format')
                     continue
                 
-                # Check for existing entry
                 existing_entry = ShiftRoster.query.filter(
                     and_(
                         ShiftRoster.employee_id == entry_data['employee_id'],
@@ -355,7 +329,6 @@ def create_bulk_roster():
                     errors.append(f'Entry {i+1}: Employee already scheduled for this date')
                     continue
                 
-                # Create roster entry
                 roster_entry = ShiftRoster(
                     employee_id=entry_data['employee_id'],
                     shift_id=entry_data['shift_id'],
@@ -397,14 +370,14 @@ def accept_roster_entry(roster_id):
         roster_entry = ShiftRoster.query.get(roster_id)
         if not roster_entry:
             return jsonify({'error': 'Roster entry not found'}), 404
-        # Only the assigned employee can accept
+
         if roster_entry.employee_id != current_user.id:
             return jsonify({'error': 'Not authorized'}), 403
+
         roster_entry.status = 'accepted'
-        roster_entry.accepted_at = datetime.utcnow()  # <-- Add this line
+        roster_entry.accepted_at = datetime.utcnow()
         db.session.commit()
         return jsonify({'message': 'Shift accepted', 'roster_entry': roster_entry.to_dict()}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
-

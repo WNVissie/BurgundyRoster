@@ -61,7 +61,6 @@ export function Employees() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  // Use non-empty sentinels for Radix Select filters
   const [selectedRole, setSelectedRole] = useState('all');
   const [selectedArea, setSelectedArea] = useState('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -71,18 +70,18 @@ export function Employees() {
     surname: '',
     employee_id: '',
     contact_no: '',
-  email: '',
-  designation_id: '',
+    email: '',
+    designation_id: '',
     role_id: '',
     area_of_responsibility_id: '',
     rate_type: '',
     rate_value: ''
   });
-  const [selectedSkills, setSelectedSkills] = useState([]); // array of skill IDs (string)
+  const [selectedSkills, setSelectedSkills] = useState([]);
   const [initialSelectedSkills, setInitialSelectedSkills] = useState([]);
-  const [selectedLicenses, setSelectedLicenses] = useState([]); // array of license IDs (string)
-  const [licenseExpiry, setLicenseExpiry] = useState({}); // { [licenseId]: 'YYYY-MM-DD' }
-  const [initialLicensesMap, setInitialLicensesMap] = useState({}); // { [licenseId]: 'YYYY-MM-DD' }
+  const [selectedLicenses, setSelectedLicenses] = useState([]);
+  const [licenseExpiry, setLicenseExpiry] = useState({});
+  const [initialLicensesMap, setInitialLicensesMap] = useState({});
 
   useEffect(() => {
     fetchData();
@@ -120,17 +119,16 @@ export function Employees() {
           surname: formData.surname,
           employee_id: formData.employee_id,
           contact_no: formData.contact_no,
-          ...(formData.alt_contact_name ? { alt_contact_name: formData.alt_contact_name } : {}),
-          ...(formData.alt_contact_no ? { alt_contact_no: formData.alt_contact_no } : {}),
-          ...(formData.designation_id ? { designation_id: parseInt(formData.designation_id, 10) } : {}),
-          ...(formData.role_id ? { role_id: parseInt(formData.role_id, 10) } : {}),
-          ...(formData.area_of_responsibility_id ? { area_of_responsibility_id: parseInt(formData.area_of_responsibility_id, 10) } : {}),
+          alt_contact_name: formData.alt_contact_name,
+          alt_contact_no: formData.alt_contact_no,
+          designation_id: formData.designation_id ? parseInt(formData.designation_id, 10) : null,
+          role_id: parseInt(formData.role_id, 10),
+          area_of_responsibility_id: formData.area_of_responsibility_id ? parseInt(formData.area_of_responsibility_id, 10) : null,
           rate_type: formData.rate_type,
-          rate_value: formData.rate_value,
+          rate_value: formData.rate_value
         };
         await employeesAPI.update(editingEmployee.id, updateData);
 
-        // Sync skills
         const initialSet = new Set(initialSelectedSkills.map(String));
         const currentSet = new Set(selectedSkills.map(String));
         const toAdd = [...currentSet].filter(x => !initialSet.has(x));
@@ -141,33 +139,6 @@ export function Employees() {
         for (const sid of toRemove) {
           await employeesAPI.removeSkill(editingEmployee.id, parseInt(sid, 10));
         }
-
-        // Sync licenses
-        const initialMap = initialLicensesMap; // {id: date}
-        const currentIds = new Set(selectedLicenses.map(String));
-        const initialIds = new Set(Object.keys(initialMap));
-        // Adds
-        for (const lid of currentIds) {
-          if (!initialIds.has(lid)) {
-            await employeesAPI.addLicense(editingEmployee.id, { license_id: parseInt(lid, 10), expiry_date: licenseExpiry[lid] || null });
-          }
-        }
-        // Updates
-        for (const lid of currentIds) {
-          if (initialIds.has(lid)) {
-            const before = initialMap[lid] || null;
-            const now = licenseExpiry[lid] || null;
-            if (before !== now) {
-              await employeesAPI.updateLicense(editingEmployee.id, parseInt(lid, 10), { expiry_date: now });
-            }
-          }
-        }
-        // Removes
-        for (const lid of initialIds) {
-          if (!currentIds.has(lid)) {
-            await employeesAPI.removeLicense(editingEmployee.id, parseInt(lid, 10));
-          }
-        }
       } else {
         const createData = {
           google_id: `manual_${Date.now()}`,
@@ -176,24 +147,19 @@ export function Employees() {
           surname: formData.surname,
           employee_id: formData.employee_id,
           contact_no: formData.contact_no,
-          ...(formData.alt_contact_name ? { alt_contact_name: formData.alt_contact_name } : {}),
-          ...(formData.alt_contact_no ? { alt_contact_no: formData.alt_contact_no } : {}),
-          ...(formData.designation_id ? { designation_id: parseInt(formData.designation_id, 10) } : {}),
-          ...(formData.role_id ? { role_id: parseInt(formData.role_id, 10) } : {}),
-          ...(formData.area_of_responsibility_id ? { area_of_responsibility_id: parseInt(formData.area_of_responsibility_id, 10) } : {}),
+          alt_contact_name: formData.alt_contact_name,
+          alt_contact_no: formData.alt_contact_no,
+          designation_id: formData.designation_id ? parseInt(formData.designation_id, 10) : null,
+          role_id: parseInt(formData.role_id, 10),
+          area_of_responsibility_id: formData.area_of_responsibility_id ? parseInt(formData.area_of_responsibility_id, 10) : null,
           rate_type: formData.rate_type,
-          rate_value: formData.rate_value,
+          rate_value: formData.rate_value
         };
         const res = await employeesAPI.create(createData);
         const newId = res?.data?.employee?.id;
         if (newId) {
-          // Assign skills
           for (const sid of selectedSkills) {
             await employeesAPI.addSkill(newId, { skill_id: parseInt(sid, 10) });
-          }
-          // Assign licenses
-          for (const lid of selectedLicenses) {
-            await employeesAPI.addLicense(newId, { license_id: parseInt(lid, 10), expiry_date: licenseExpiry[lid] || null });
           }
         }
       }
@@ -216,9 +182,6 @@ export function Employees() {
       });
       setSelectedSkills([]);
       setInitialSelectedSkills([]);
-      setSelectedLicenses([]);
-      setLicenseExpiry({});
-      setInitialLicensesMap({});
       fetchData();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to save employee');
@@ -241,24 +204,9 @@ export function Employees() {
       rate_type: employee.rate_type || '',
       rate_value: employee.rate_value || ''
     });
-    // Skills selection
     const currentSkills = (employee.skills || []).map(s => s.id.toString());
     setSelectedSkills(currentSkills);
     setInitialSelectedSkills(currentSkills);
-    // Licenses selection with expiry
-    const detailed = employee.licenses_detailed || [];
-    const sel = detailed.map(d => d.license_id.toString());
-    setSelectedLicenses(sel);
-    const exp = {};
-    for (const d of detailed) {
-      exp[d.license_id] = d.expiry_date || '';
-    }
-    setLicenseExpiry(exp);
-    const initMap = {};
-    for (const d of detailed) {
-      initMap[d.license_id] = d.expiry_date || '';
-    }
-    setInitialLicensesMap(initMap);
     setIsDialogOpen(true);
   };
 
@@ -280,8 +228,8 @@ export function Employees() {
       employee.employee_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.email.toLowerCase().includes(searchTerm.toLowerCase());
     
-  const matchesRole = selectedRole === 'all' || employee.role_id.toString() === selectedRole;
-  const matchesArea = selectedArea === 'all' || (employee.area_of_responsibility_id?.toString() === selectedArea);
+    const matchesRole = selectedRole === 'all' || employee.role_id.toString() === selectedRole;
+    const matchesArea = selectedArea === 'all' || (employee.area_of_responsibility_id?.toString() === selectedArea);
     
     return matchesSearch && matchesRole && matchesArea;
   });
@@ -305,14 +253,13 @@ export function Employees() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Employees</h1>
           <p className="text-gray-600 mt-1">Manage employee information and assignments</p>
         </div>
         
-  {isAdmin() && (
+        {isAdmin() && (
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => {
@@ -331,9 +278,6 @@ export function Employees() {
                 });
                 setSelectedSkills([]);
                 setInitialSelectedSkills([]);
-                setSelectedLicenses([]);
-                setLicenseExpiry({});
-                setInitialLicensesMap({});
               }}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Employee
@@ -352,53 +296,27 @@ export function Employees() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="name">First Name</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      required
-                    />
+                    <Input id="name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
                   </div>
                   <div>
                     <Label htmlFor="surname">Last Name</Label>
-                    <Input
-                      id="surname"
-                      value={formData.surname}
-                      onChange={(e) => setFormData({...formData, surname: e.target.value})}
-                      required
-                    />
+                    <Input id="surname" value={formData.surname} onChange={(e) => setFormData({...formData, surname: e.target.value})} required />
                   </div>
                 </div>
                 
                 <div>
                   <Label htmlFor="employee_id">Employee ID</Label>
-                  <Input
-                    id="employee_id"
-                    value={formData.employee_id}
-                    onChange={(e) => setFormData({...formData, employee_id: e.target.value})}
-                    required
-                  />
+                  <Input id="employee_id" value={formData.employee_id} onChange={(e) => setFormData({...formData, employee_id: e.target.value})} required />
                 </div>
                 
                 <div>
                   <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    required
-                  />
+                  <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
                 </div>
                 
                 <div>
                   <Label htmlFor="contact_no">Contact Number</Label>
-                  <Input
-                    id="contact_no"
-                    value={formData.contact_no}
-                    onChange={(e) => setFormData({...formData, contact_no: e.target.value})}
-                    required
-                  />
+                  <Input id="contact_no" value={formData.contact_no} onChange={(e) => setFormData({...formData, contact_no: e.target.value})} required />
                 </div>
 
                 <div>
@@ -420,19 +338,11 @@ export function Employees() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="alt_contact_name">Alternative Contact Name</Label>
-                    <Input
-                      id="alt_contact_name"
-                      value={formData.alt_contact_name || ''}
-                      onChange={(e) => setFormData({...formData, alt_contact_name: e.target.value})}
-                    />
+                    <Input id="alt_contact_name" value={formData.alt_contact_name || ''} onChange={(e) => setFormData({...formData, alt_contact_name: e.target.value})} />
                   </div>
                   <div>
                     <Label htmlFor="alt_contact_no">Alternative Contact</Label>
-                    <Input
-                      id="alt_contact_no"
-                      value={formData.alt_contact_no || ''}
-                      onChange={(e) => setFormData({...formData, alt_contact_no: e.target.value})}
-                    />
+                    <Input id="alt_contact_no" value={formData.alt_contact_no || ''} onChange={(e) => setFormData({...formData, alt_contact_no: e.target.value})} />
                   </div>
                 </div>
 
@@ -456,42 +366,6 @@ export function Employees() {
                       </div>
                     </AccordionContent>
                   </AccordionItem>
-                  {/* <AccordionItem value="licenses">
-                    <AccordionTrigger>Licenses</AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-2 mt-2">
-                        {licenseOptions.map((lic) => {
-                          const id = lic.id.toString();
-                          const selected = selectedLicenses.includes(id);
-                          return (
-                            <div key={lic.id} className="flex flex-col md:flex-row md:items-center md:space-x-3 p-2 border rounded">
-                              <label className="flex items-center space-x-2 text-sm">
-                                <Checkbox
-                                  checked={selected}
-                                  onCheckedChange={(checked) => {
-                                    setSelectedLicenses((prev) => checked ? [...prev, id] : prev.filter(x => x !== id));
-                                  }}
-                                />
-                                <span>{lic.name}</span>
-                              </label>
-                              {selected && (
-                                <div className="mt-2 md:mt-0 md:ml-auto flex items-center space-x-2">
-                                  <Label htmlFor={`exp_${id}`} className="text-xs">Expiry</Label>
-                                  <Input
-                                    id={`exp_${id}`}
-                                    type="date"
-                                    value={licenseExpiry[id] || ''}
-                                    onChange={(e) => setLicenseExpiry(prev => ({...prev, [id]: e.target.value}))}
-                                    className="h-8"
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem> */}
                   <AccordionItem value="rates">
                     <AccordionTrigger>Rates</AccordionTrigger>
                     <AccordionContent>
@@ -513,12 +387,7 @@ export function Employees() {
                         </div>
                         <div>
                           <Label htmlFor="rate_value">Rate Value (ZAR)</Label>
-                          <Input
-                            id="rate_value"
-                            type="number"
-                            value={formData.rate_value}
-                            onChange={(e) => setFormData({...formData, rate_value: e.target.value})}
-                          />
+                          <Input id="rate_value" type="number" value={formData.rate_value} onChange={(e) => setFormData({...formData, rate_value: e.target.value})} />
                         </div>
                       </div>
                     </AccordionContent>
@@ -571,7 +440,6 @@ export function Employees() {
         )}
       </div>
 
-      {/* Filters */}
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col md:flex-row gap-4">
@@ -618,7 +486,6 @@ export function Employees() {
         </CardContent>
       </Card>
 
-      {/* Error Alert */}
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -626,7 +493,6 @@ export function Employees() {
         </Alert>
       )}
 
-      {/* Employees Table */}
       <Card>
         <CardHeader>
           <CardTitle>Employee List</CardTitle>
@@ -648,7 +514,6 @@ export function Employees() {
                   <TableHead>Role</TableHead>
                   <TableHead>Area</TableHead>
                   <TableHead>Skills</TableHead>
-                  {/* <TableHead>Licenses</TableHead> */}
                   {isAdmin() && <TableHead>Actions</TableHead>}
                 </TableRow>
               </TableHeader>
@@ -702,7 +567,7 @@ export function Employees() {
                         <Badge
                           style={{
                             backgroundColor: area.color,
-                            color: 'white', // A simple choice, could be improved with a color contrast function
+                            color: 'white',
                           }}
                         >
                           {area.name}
@@ -725,23 +590,6 @@ export function Employees() {
                         )}
                       </div>
                     </TableCell>
-                    {/* <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {(employee.licenses_detailed || []).slice(0, 5).map((ld) => {
-                          const soon = ld.expiring_soon;
-                          const expired = ld.expired;
-                          const cls = expired ? 'bg-red-100 text-red-700 border-red-300' : (soon ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : '');
-                          return (
-                            <Badge key={ld.license_id} variant="outline" className={`text-xs ${cls}`}>
-                              {(ld.license?.name || ld.name || 'License')}{ld.expiry_date ? ` (${ld.expiry_date})` : ''}
-                            </Badge>
-                          );
-                        })}
-                        {employee.licenses_detailed && employee.licenses_detailed.length > 5 && (
-                          <Badge variant="outline" className="text-xs">+{employee.licenses_detailed.length - 5}</Badge>
-                        )}
-                      </div>
-                    </TableCell> */}
                     {isAdmin() && (
                       <TableCell>
                         <div className="flex space-x-2">

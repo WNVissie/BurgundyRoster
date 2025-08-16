@@ -16,11 +16,9 @@ def get_dashboard_metrics():
         if current_user.role_ref.name not in ['Admin', 'Manager']:
             return jsonify({'error': 'Insufficient permissions'}), 403
         
-        # Get date range from query params
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         
-        # Default to current week if no dates provided
         if not start_date or not end_date:
             today = date.today()
             start_date = (today - timedelta(days=today.weekday())).isoformat()
@@ -32,10 +30,8 @@ def get_dashboard_metrics():
         except ValueError:
             return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
         
-        # Total employees
         total_employees = User.query.count()
         
-        # Employees on shift (for the date range)
         employees_on_shift = db.session.query(func.count(func.distinct(ShiftRoster.employee_id))).filter(
             and_(
                 ShiftRoster.date >= start_date_obj,
@@ -44,7 +40,6 @@ def get_dashboard_metrics():
             )
         ).scalar()
         
-        # Employees on leave
         employees_on_leave = db.session.query(func.count(func.distinct(LeaveRequest.employee_id))).filter(
             and_(
                 LeaveRequest.start_date <= end_date_obj,
@@ -53,10 +48,8 @@ def get_dashboard_metrics():
             )
         ).scalar()
         
-        # Available employees (not on shift or leave)
         available_employees = total_employees - employees_on_shift - employees_on_leave
         
-        # Pending approvals
         pending_rosters = ShiftRoster.query.filter(
             and_(
                 ShiftRoster.date >= start_date_obj,
@@ -65,7 +58,6 @@ def get_dashboard_metrics():
             )
         ).count()
         
-        # Total scheduled hours
         total_hours = db.session.query(func.sum(ShiftRoster.hours)).filter(
             and_(
                 ShiftRoster.date >= start_date_obj,
@@ -74,7 +66,6 @@ def get_dashboard_metrics():
             )
         ).scalar() or 0
 
-        # Get recent activities
         recent_activities = ActivityLog.query.order_by(ActivityLog.timestamp.desc()).limit(5).all()
         
         return jsonify({
@@ -105,7 +96,6 @@ def get_skill_distribution():
         if current_user.role_ref.name not in ['Admin', 'Manager']:
             return jsonify({'error': 'Insufficient permissions'}), 403
 
-        # Query to count employees for each skill
         skill_counts = db.session.query(
             Skill.name,
             func.count(User.id).label('employee_count')
@@ -133,12 +123,8 @@ def get_weekly_approval_trends():
             return jsonify({'error': 'Insufficient permissions'}), 403
 
         today = date.today()
-        # Go back to the beginning of the week (Monday) for the start date
         start_of_period = today - timedelta(days=today.weekday()) - timedelta(weeks=11)
 
-        # Query weekly trends
-        # Use func.strftime with '%Y-%W' to group by week number
-        # This works for SQLite and PostgreSQL, though syntax can vary for other DBs
         weekly_data = db.session.query(
             func.strftime('%Y-%W', ShiftRoster.date).label('week'),
             ShiftRoster.status,
@@ -147,22 +133,18 @@ def get_weekly_approval_trends():
             ShiftRoster.date >= start_of_period
         ).group_by('week', ShiftRoster.status).order_by('week').all()
 
-        # Process data into a structured format
         trends = {}
         for week_str, status, count in weekly_data:
             if week_str not in trends:
-                trends[week_str] = {'week': week_str, 'approved': 0, 'pending': 0, 'rejected': 0}
+                trends[week_str] = {'week': week_str, 'approved': 0, 'pending': 0, 'rejected': 0, 'accepted': 0}
             if status in trends[week_str]:
                 trends[week_str][status] = count
 
-        # Sort by week and convert to list
         sorted_trends = sorted(trends.values(), key=lambda x: x['week'])
 
         return jsonify({'data': sorted_trends}), 200
 
     except Exception as e:
-        # For debugging, it can be helpful to log the error
-        # print(f"Error in get_weekly_approval_trends: {e}")
         return jsonify({'error': str(e)}), 500
 
 @analytics_bp.route('/employees-by-shift', methods=['GET'])
@@ -175,7 +157,6 @@ def get_employees_by_shift():
         if current_user.role_ref.name not in ['Admin', 'Manager']:
             return jsonify({'error': 'Insufficient permissions'}), 403
         
-        # Get date range
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         
@@ -190,7 +171,6 @@ def get_employees_by_shift():
         except ValueError:
             return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
         
-        # Query employee count by shift
         shift_counts = db.session.query(
             Shift.name,
             Shift.color,
@@ -231,7 +211,6 @@ def get_employees_by_role():
         if current_user.role_ref.name not in ['Admin', 'Manager']:
             return jsonify({'error': 'Insufficient permissions'}), 403
         
-        # Query employee count by role
         role_counts = db.session.query(
             Role.name,
             func.count(User.id).label('employee_count')
@@ -258,20 +237,17 @@ def get_employees_by_area():
         if current_user.role_ref.name not in ['Admin', 'Manager']:
             return jsonify({'error': 'Insufficient permissions'}), 403
         
-        # Subquery for employee counts per area
         emp_counts_sub = db.session.query(
             User.area_of_responsibility_id,
             func.count(User.id).label('employee_count')
         ).group_by(User.area_of_responsibility_id).subquery()
 
-        # Subquery for shift counts per area
         shift_counts_sub = db.session.query(
             User.area_of_responsibility_id,
             func.count(ShiftRoster.id).label('shift_count')
         ).join(ShiftRoster, User.id == ShiftRoster.employee_id)\
          .group_by(User.area_of_responsibility_id).subquery()
 
-        # Main query joining areas with subqueries
         results = db.session.query(
             AreaOfResponsibility.name,
             func.coalesce(emp_counts_sub.c.employee_count, 0),
@@ -307,13 +283,12 @@ def get_leave_summary():
         if current_user.role_ref.name not in ['Admin', 'Manager']:
             return jsonify({'error': 'Insufficient permissions'}), 403
         
-        # Get date range
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         
         if not start_date or not end_date:
             today = date.today()
-            start_date = today.replace(month=1, day=1).isoformat()  # Start of year
+            start_date = today.replace(month=1, day=1).isoformat()
             end_date = today.isoformat()
         
         try:
@@ -322,7 +297,6 @@ def get_leave_summary():
         except ValueError:
             return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
         
-        # Query leave summary by type
         leave_summary = db.session.query(
             LeaveRequest.leave_type,
             func.count(LeaveRequest.id).label('request_count'),
@@ -380,12 +354,10 @@ def skill_search():
         
         employees = query.all()
         
-        # Get current shift status for each employee
         today = date.today()
         result = []
         
         for employee in employees:
-            # Check if employee has a shift today
             today_roster = ShiftRoster.query.filter(
                 and_(
                     ShiftRoster.employee_id == employee.id,
@@ -398,7 +370,6 @@ def skill_search():
             if today_roster:
                 shift_status = 'on_shift'
             
-            # Check if on leave
             on_leave = LeaveRequest.query.filter(
                 and_(
                     LeaveRequest.employee_id == employee.id,
@@ -438,7 +409,6 @@ def get_shift_coverage():
         if current_user.role_ref.name not in ['Admin', 'Manager']:
             return jsonify({'error': 'Insufficient permissions'}), 403
         
-        # Get date range
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         
@@ -453,7 +423,6 @@ def get_shift_coverage():
         except ValueError:
             return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
         
-        # Get planned (pending+approved) and actual (approved and date <= today) counts per shift type
         today = date.today()
         shift_types = db.session.query(Shift.id, Shift.name, Shift.color).all()
         utilization = []
@@ -488,4 +457,3 @@ def get_shift_coverage():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-

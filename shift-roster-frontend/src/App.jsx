@@ -12,9 +12,10 @@ import { Roster } from './pages/Roster';
 import { Admin } from './pages/Admin';
 import { Leave } from './pages/Leave';
 import { Community } from './pages/Community';
+import { Analytics } from './pages/Analytics';
+import Timesheets from './pages/Timesheets.jsx';
 import './App.css';
 
-// Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -24,21 +25,13 @@ const queryClient = new QueryClient({
   },
 });
 
-
-import { Analytics } from './pages/Analytics';
-import Timesheets from './pages/Timesheets.jsx';
-// const ReportsPage = ... (leave as is)
-
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Router>
           <Routes>
-            {/* Public routes */}
             <Route path="/login" element={<Login />} />
-            
-            {/* Protected routes */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             
             <Route path="/dashboard" element={
@@ -113,7 +106,6 @@ function App() {
               </ProtectedRoute>
             } />
             
-            {/* Catch all route */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </Router>

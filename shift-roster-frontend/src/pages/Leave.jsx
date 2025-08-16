@@ -82,16 +82,6 @@ export function Leave() {
     }
   };
 
-  const handleAction = async (id, action) => {
-    if (!window.confirm(`Are you sure you want to ${action} this request?`)) return;
-    try {
-      await leaveAPI.action(id, { action });
-      fetchLeaveRequests();
-    } catch (err) {
-      setError(err.response?.data?.error || `Failed to ${action} leave request`);
-    }
-  };
-
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this request?')) return;
     try {

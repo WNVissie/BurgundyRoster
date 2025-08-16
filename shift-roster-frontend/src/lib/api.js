@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-// Create axios instance with base configuration
 const api = axios.create({
   baseURL: import.meta.env.PROD ? '/api' : 'http://localhost:5001/api',
   headers: {
@@ -8,10 +7,8 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    // If Authorization is already set by the caller (e.g., refresh using refresh token), don't override it
     const hasAuthHeader = !!config.headers?.Authorization;
     if (!hasAuthHeader) {
       const token = localStorage.getItem('access_token');
@@ -27,14 +24,12 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle token refresh
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
     const status = error.response?.status;
-    // If the failing request is the refresh endpoint itself, bail out
     if (originalRequest?.url?.includes('/auth/refresh')) {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
@@ -42,14 +37,12 @@ api.interceptors.response.use(
       window.location.href = '/login';
       return Promise.reject(error);
     }
-    // Treat 401 and 422 from JWT as auth issues
     if ((status === 401 || status === 422) && !originalRequest._retry) {
       originalRequest._retry = true;
 
   try {
         const refreshToken = localStorage.getItem('refresh_token');
         if (refreshToken) {
-          // Use same baseURL as api instance to avoid relative URL issues in dev
           const response = await api.post('/auth/refresh', {}, {
             headers: { Authorization: `Bearer ${refreshToken}` }
           });
@@ -57,13 +50,11 @@ api.interceptors.response.use(
           const { access_token } = response.data;
           localStorage.setItem('access_token', access_token);
           
-          // Retry original request with new token
           originalRequest.headers.Authorization = `Bearer ${access_token}`;
           return api(originalRequest);
         }
       } catch (refreshError) {
         console.debug('Token refresh failed', refreshError?.message || refreshError);
-        // Refresh failed, redirect to login
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
@@ -75,7 +66,6 @@ api.interceptors.response.use(
   }
 );
 
-// Auth API
 export const authAPI = {
   login: (credentials) => api.post('/auth/google', credentials),
   refresh: () => api.post('/auth/refresh'),
@@ -83,7 +73,6 @@ export const authAPI = {
   getCurrentUser: () => api.get('/auth/me'),
 };
 
-// Employees API
 export const employeesAPI = {
   getAll: (params) => api.get('/employees', { params }),
   getById: (id) => api.get(`/employees/${id}`),
@@ -92,14 +81,12 @@ export const employeesAPI = {
   delete: (id) => api.delete(`/employees/${id}`),
   addSkill: (id, skillData) => api.post(`/employees/${id}/skills`, skillData),
   removeSkill: (employeeId, skillId) => api.delete(`/employees/${employeeId}/skills/${skillId}`),
-  // Licenses
   getEmployeeLicenses: (employeeId) => api.get(`/employees/${employeeId}/licenses`),
   addLicense: (employeeId, payload) => api.post(`/employees/${employeeId}/licenses`, payload),
   updateLicense: (employeeId, licenseId, payload) => api.put(`/employees/${employeeId}/licenses/${licenseId}`, payload),
   removeLicense: (employeeId, licenseId) => api.delete(`/employees/${employeeId}/licenses/${licenseId}`),
 };
 
-// Roles API
 export const rolesAPI = {
   getAll: () => api.get('/admin/roles'),
   create: (data) => api.post('/admin/roles', data),
@@ -107,7 +94,6 @@ export const rolesAPI = {
   delete: (id) => api.delete(`/admin/roles/${id}`),
 };
 
-// Areas API
 export const areasAPI = {
   getAll: () => api.get('/admin/areas'),
   create: (data) => api.post('/admin/areas', data),
@@ -115,7 +101,6 @@ export const areasAPI = {
   delete: (id) => api.delete(`/admin/areas/${id}`),
 };
 
-// Skills API
 export const skillsAPI = {
   getAll: () => api.get('/admin/skills'),
   create: (data) => api.post('/admin/skills', data),
@@ -123,7 +108,6 @@ export const skillsAPI = {
   delete: (id) => api.delete(`/admin/skills/${id}`),
 };
 
-// Licenses API
 export const licensesAPI = {
   getAll: () => api.get('/licenses/'),
   create: (data) => api.post('/licenses/', data),
@@ -131,7 +115,6 @@ export const licensesAPI = {
   delete: (id) => api.delete(`/licenses/${id}`),
 };
 
-// Leave API
 export const leaveAPI = {
   getAll: (params) => api.get('/leave', { params }),
   create: (data) => api.post('/leave', data),
@@ -139,19 +122,16 @@ export const leaveAPI = {
   delete: (id) => api.delete(`/leave/${id}`),
 };
 
-// Reports API
 export const reportsAPI = {
   employeeSearch: (params) => api.get('/reports/employee-search', { params }),
   getEmployeeHistory: (employeeId) => api.get(`/reports/employee-history/${employeeId}`),
   shiftAcceptance: (params) => api.get('/reports/shift-acceptance', { params }),
 };
 
-// Designations API
 export const designationsAPI = {
   getAll: () => api.get('/designations'),
 };
 
-// Community API
 export const communityAPI = {
   getPosts: () => api.get('/community/posts'),
   getPost: (id) => api.get(`/community/posts/${id}`),
@@ -160,7 +140,6 @@ export const communityAPI = {
   deletePost: (id) => api.delete(`/community/posts/${id}`),
 };
 
-// Shifts API
 export const shiftsAPI = {
   getAll: () => api.get('/shifts'),
   create: (data) => api.post('/shifts', data),
@@ -169,7 +148,6 @@ export const shiftsAPI = {
   accept: (id) => api.post(`/shifts/${id}/accept`),
 };
 
-// Roster API
 export const rosterAPI = {
   getAll: (params) => api.get('/roster', { params }),
   create: (data) => api.post('/roster', data),
@@ -180,7 +158,6 @@ export const rosterAPI = {
   accept: (id) => api.post(`/roster/${id}/accept`),
 };
 
-// Analytics API
 export const analyticsAPI = {
   getDashboard: (params) => api.get('/analytics/dashboard', { params }),
   getEmployeesByShift: (params) => api.get('/analytics/employees-by-shift', { params }),
@@ -193,7 +170,6 @@ export const analyticsAPI = {
   getWeeklyApprovalTrends: () => api.get('/analytics/weekly-approval-trends'),
 };
 
-// Timesheets API
 export const timesheetsAPI = {
   generate: (payload) => api.post('/timesheets/generate', payload),
   getAll: (params) => api.get('/timesheets', { params }),
@@ -203,4 +179,3 @@ export const timesheetsAPI = {
 };
 
 export default api;
-

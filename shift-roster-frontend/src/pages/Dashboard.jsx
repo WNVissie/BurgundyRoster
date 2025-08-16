@@ -53,8 +53,6 @@ export function Dashboard() {
     return 'Good evening';
   };
 
-  // Note: add status color helper here if needed in the future
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -65,7 +63,6 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Section */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between">
           <div>
@@ -85,7 +82,6 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
@@ -126,7 +122,6 @@ export function Dashboard() {
         )}
       </div>
 
-      {/* Metrics for Admin/Manager */}
       {(isAdmin() || isManager()) && metrics && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
@@ -183,7 +178,6 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* Recent Activity */}
       {(isAdmin() || isManager()) && (
         <Card>
           <CardHeader>
@@ -223,7 +217,6 @@ export function Dashboard() {
         </Card>
       )}
 
-      {/* Quick Links */}
       <Card>
         <CardHeader>
           <CardTitle>Quick Links</CardTitle>
@@ -273,4 +266,3 @@ export function Dashboard() {
     </div>
   );
 }
-

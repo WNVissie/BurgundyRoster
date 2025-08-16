@@ -6,51 +6,31 @@ from datetime import datetime
 
 employees_bp = Blueprint('employees', __name__)
 
-# Debug endpoint - remove this after testing
-@employees_bp.route('/test', methods=['GET'])
-def test_employees():
-    """Test endpoint to debug employee data without auth"""
-    try:
-        employees = User.query.limit(5).all()
-        return jsonify({
-            'employees': [emp.to_dict() for emp in employees],
-            'total': len(employees)
-        }), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 @employees_bp.route('', methods=['GET'])
-# @jwt_required()  # Temporarily removed for debugging
+@jwt_required()
 def get_employees():
     """Get all employees with optional filtering"""
     try:
-        # Temporarily bypass permission check for debugging
-        # current_user = get_current_user()
-        # if not current_user:
-        #     return jsonify({'error': 'User not found. Please login again.'}), 401
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'error': 'User not found. Please login again.'}), 401
         
-        # Check permissions
-        # if not current_user.role_ref or current_user.role_ref.name not in ['Admin', 'Manager']:
-        #     return jsonify({'error': 'Insufficient permissions'}), 403
+        if current_user.role_ref.name not in ['Admin', 'Manager']:
+            return jsonify({'error': 'Insufficient permissions'}), 403
         
-        # Get query parameters
         role_id = request.args.get('role_id', type=int)
         area_id = request.args.get('area_id', type=int)
         skill_id = request.args.get('skill_id', type=int)
         search = request.args.get('search', '')
         
-        # Build query
         query = User.query
         
         if role_id:
             query = query.filter(User.role_id == role_id)
-        
         if area_id:
             query = query.filter(User.area_of_responsibility_id == area_id)
-        
         if skill_id:
             query = query.join(User.skills).filter(Skill.id == skill_id)
-        
         if search:
             search_filter = f'%{search}%'
             query = query.filter(
@@ -77,33 +57,27 @@ def create_employee():
     try:
         data = request.get_json()
         
-        # Validate required fields
         required_fields = ['google_id', 'email', 'name', 'surname', 'role_id']
         for field in required_fields:
             if field not in data:
                 return jsonify({'error': f'{field} is required'}), 400
         
-        # Check if user already exists
         existing_user = User.query.filter(
             (User.google_id == data['google_id']) | 
             (User.email == data['email'])
         ).first()
-        
         if existing_user:
             return jsonify({'error': 'User with this Google ID or email already exists'}), 400
         
-        # Validate role exists
         role = Role.query.get(data['role_id'])
         if not role:
             return jsonify({'error': 'Invalid role ID'}), 400
         
-        # Validate area if provided
         if data.get('area_of_responsibility_id'):
             area = AreaOfResponsibility.query.get(data['area_of_responsibility_id'])
             if not area:
                 return jsonify({'error': 'Invalid area of responsibility ID'}), 400
         
-        # Create new employee
         employee = User(
             google_id=data['google_id'],
             email=data['email'],
@@ -141,7 +115,6 @@ def get_employee(employee_id):
         if not current_user:
             return jsonify({'error': 'User not found. Please login again.'}), 401
         
-        # Check permissions - users can view their own profile
         if current_user.role_ref.name not in ['Admin', 'Manager'] and current_user.id != employee_id:
             return jsonify({'error': 'Insufficient permissions'}), 403
         
@@ -163,23 +136,20 @@ def update_employee(employee_id):
         if not current_user:
             return jsonify({'error': 'User not found. Please login again.'}), 401
         
-        # Check permissions - users can update their own profile (limited fields)
         employee = User.query.get(employee_id)
         if not employee:
             return jsonify({'error': 'Employee not found'}), 404
         
         data = request.get_json()
         
-        # Admin can update all fields
+        allowed_fields = []
         if current_user.role_ref.name == 'Admin':
             allowed_fields = ['email', 'name', 'surname', 'employee_id', 'contact_no', 'alt_contact_name', 'alt_contact_no', 'licenses', 'designation_id', 'role_id', 'area_of_responsibility_id', 'rate_type', 'rate_value']
-        # Users can only update their own contact info
         elif current_user.id == employee_id:
             allowed_fields = ['contact_no']
         else:
             return jsonify({'error': 'Insufficient permissions'}), 403
         
-        # Update allowed fields
         for field in allowed_fields:
             if field in data:
                 if field == 'role_id':
@@ -220,7 +190,6 @@ def delete_employee(employee_id):
         if not employee:
             return jsonify({'error': 'Employee not found'}), 404
         
-        # Check if employee has associated records
         if employee.shift_rosters or employee.timesheets:
             return jsonify({'error': 'Cannot delete employee with existing shift rosters or timesheets'}), 400
         
@@ -289,9 +258,6 @@ def remove_employee_skill(employee_id, skill_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
-
-# License endpoints are now consolidated here.
-# Listing all available license types is handled in licenses.py
 
 @employees_bp.route('/<int:employee_id>/licenses', methods=['GET'])
 @jwt_required()
@@ -368,4 +334,3 @@ def remove_employee_license(employee_id, license_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
-

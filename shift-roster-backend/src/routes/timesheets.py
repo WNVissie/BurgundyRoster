@@ -6,7 +6,6 @@ from src.utils.decorators import get_current_user
 
 timesheets_bp = Blueprint('timesheets', __name__)
 
-# GET endpoint to fetch timesheets
 @timesheets_bp.route('', methods=['GET'])
 @jwt_required()
 def get_timesheets():
@@ -18,10 +17,9 @@ def get_timesheets():
 
     query = db.session.query(Timesheet, User).join(User, Timesheet.employee_id == User.id)
 
-    # If user is an employee, they can only see their own timesheets
     if current_user.role_ref.name == 'Employee':
         query = query.filter(Timesheet.employee_id == current_user.id)
-    elif employee_id: # Admins/Managers can filter by employee
+    elif employee_id:
         query = query.filter(Timesheet.employee_id == int(employee_id))
 
     if start_date:
@@ -48,11 +46,7 @@ def get_timesheets():
 
 @timesheets_bp.route('/generate', methods=['POST'])
 def generate_timesheets():
-    """Generate timesheets from roster entries within a date range.
-    Request JSON: { start_date: 'YYYY-MM-DD', end_date: 'YYYY-MM-DD', employee_id?: int }
-    Admin/Manager: for all or specific employee; Employee: only for self.
-    Creates timesheets only when not existing for roster entries with approved or pending status.
-    """
+    """Generate timesheets from roster entries within a date range."""
     try:
         data = request.get_json() or {}
         start_date = data.get('start_date')
@@ -68,7 +62,6 @@ def generate_timesheets():
         except ValueError:
             return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
 
-        # Generate timesheets only from approved shifts
         query = ShiftRoster.query.filter_by(status='approved')
 
         if employee_id:
@@ -121,6 +114,7 @@ def accept_timesheet(id):
     if not ts:
         return jsonify({'error': 'Timesheet not found'}), 404
     ts.status = 'accepted'
+    ts.accepted_at = datetime.utcnow()
     db.session.commit()
     return jsonify({'message': 'Timesheet accepted', 'timesheet': ts.to_dict()}), 200
 

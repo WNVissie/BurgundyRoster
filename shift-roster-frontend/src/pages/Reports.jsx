@@ -220,7 +220,7 @@ export function Reports() {
               {acceptanceReportLoading ? 'Generating...' : 'Generate Report'}
             </Button>
           </div>
-          {acceptanceReportData.length > 0 && (
+          {acceptanceReportData && acceptanceReportData.length > 0 && (
             <Table>
               <TableHeader>
                 <TableRow>
