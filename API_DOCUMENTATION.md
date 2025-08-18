@@ -926,5 +926,177 @@ curl -X POST http://localhost:5001/api/employees \
 }
 ```
 
-This API documentation provides comprehensive information for integrating with the Employee Shift Roster system, including all endpoints, request/response formats, authentication requirements, and error handling.
+## 📄 Leave Management
+
+### GET /leave
+Get list of all leave requests.
+
+**Response:**
+```json
+{
+  "leave_requests": [
+    {
+      "id": 1,
+      "employee_id": 2,
+      "leave_type": "sick",
+      "start_date": "2024-04-01",
+      "end_date": "2024-04-03",
+      "days": 3,
+      "reason": "Flu",
+      "status": "approved",
+      "approved_by": 1,
+      "approved_at": "2024-03-31T09:00:00Z",
+      "action_comment": "Approved by manager",
+      "created_at": "2024-03-30T10:00:00Z"
+    }
+  ]
+}
+```
+
+### POST /leave
+Create a new leave request.
+
+**Request Body:**
+```json
+{
+  "employee_id": 2,
+  "leave_type": "annual",
+  "start_date": "2024-05-10",
+  "end_date": "2024-05-12",
+  "reason": "Family event"
+}
+```
+
+### PUT /leave/{id}
+Update a leave request.
+
+### DELETE /leave/{id}
+Delete a leave request.
+
+### POST /leave/{id}/approve
+Approve a leave request.
+
+### POST /leave/{id}/reject
+Reject a leave request.
+
+---
+
+## ⏱️ Timesheet Management
+
+### GET /timesheets
+Get list of all timesheets.
+
+**Response:**
+```json
+{
+  "timesheets": [
+    {
+      "id": 1,
+      "employee_id": 2,
+      "roster_id": 5,
+      "date": "2024-04-01",
+      "hours_worked": 8,
+      "status": "approved",
+      "approved_by": 1,
+      "approved_at": "2024-04-02T09:00:00Z",
+      "accepted_at": "2024-04-01T17:00:00Z",
+      "notes": "Worked extra hour",
+      "created_at": "2024-04-01T18:00:00Z"
+    }
+  ]
+}
+```
+
+### POST /timesheets
+Create a new timesheet.
+
+### PUT /timesheets/{id}
+Update a timesheet.
+
+### DELETE /timesheets/{id}
+Delete a timesheet.
+
+### POST /timesheets/{id}/approve
+Approve a timesheet.
+
+---
+
+## 🛡️ Licenses/Certificates
+
+### GET /licenses
+Get all licenses/certificates.
+
+### POST /licenses
+Add a new license/certificate.
+
+### PUT /licenses/{id}
+Update a license/certificate.
+
+### DELETE /licenses/{id}
+Delete a license/certificate.
+
+### POST /employees/{id}/licenses
+Assign licenses/certificates to an employee.
+
+---
+
+## 🔔 Notifications
+
+### GET /notifications
+Get notifications for a user.
+
+### POST /notifications
+Create a notification.
+
+---
+
+## 👤 User Profile
+
+### GET /users/{id}
+Get user profile.
+
+### PUT /users/{id}
+Update user profile.
+
+---
+
+## 📝 Community & Activity Logs
+
+### GET /activity_logs
+Get activity logs.
+
+### POST /activity_logs
+Create an activity log.
+
+### GET /community_posts
+Get community posts.
+
+### POST /community_posts
+Create a community post.
+
+### GET /post_replies
+Get post replies.
+
+### POST /post_replies
+Create a post reply.
+
+---
+
+## 🗂️ Leave Types
+
+### GET /leave_types
+Get all leave types.
+
+### POST /leave_types
+Add a new leave type.
+
+### PUT /leave_types/{id}
+Update a leave type.
+
+### DELETE /leave_types/{id}
+Delete a leave type.
+
+---
+
+**Add these sections to your API_DOCUMENTATION.md after the existing endpoints to ensure all major APIs from your schema and design are
 

@@ -36,15 +36,17 @@ A comprehensive employee shift roster application with React frontend and Flask 
 - designation_id (Foreign Key to Designations)
 - role_id (Foreign Key to Roles, not null)
 - area_of_responsibility_id (Foreign Key to Areas)
+- rate_type (String or Enum: Monthly, Weekly, Hourly, Casual)   <!-- Added field -->
+- rate_value (Numeric)                                         <!-- Added field -->
 - created_at (DateTime)
 - updated_at (DateTime)
 - Relationships:
-	- skills (Many-to-Many with Skills)
-	- shift_rosters (One-to-Many with ShiftRoster)
-	- timesheets (One-to-Many with Timesheet)
-	- approved_rosters (One-to-Many with ShiftRoster, as approver)
-	- approved_timesheets (One-to-Many with Timesheet, as approver)
-	- licenses_assoc (One-to-Many with EmployeeLicense)
+    - skills (Many-to-Many with Skills)
+    - shift_rosters (One-to-Many with ShiftRoster)
+    - timesheets (One-to-Many with Timesheet)
+    - approved_rosters (One-to-Many with ShiftRoster, as approver)
+    - approved_timesheets (One-to-Many with Timesheet, as approver)
+    - licenses_assoc (One-to-Many with EmployeeLicense)
 
 #### Roles Table
 - id (Primary Key)
@@ -56,18 +58,19 @@ A comprehensive employee shift roster application with React frontend and Flask 
 
 #### Designations Table
 - designation_id (Primary Key)
-- designation_name (Unique, String)
+- designation_name (Unique, String) <!-- Confirmed type as String -->
 - created_on (DateTime)
 - Relationships:
-	- users (One-to-Many with Users)
+    - users (One-to-Many with Users)
 
 #### Areas of Responsibility Table
 - id (Primary Key)
 - name (Unique, String)
 - description (Text)
+- color (String) <!-- Added field -->
 - created_at (DateTime)
 - Relationships:
-	- users (One-to-Many with Users)
+    - users (One-to-Many with Users)
 
 #### Skills Table
 - id (Primary Key)
@@ -117,6 +120,8 @@ A comprehensive employee shift roster application with React frontend and Flask 
 - status (String, default='pending')
 - approved_by (Foreign Key to Users)
 - approved_at (DateTime)
+- accepted_at (DateTime) <!-- Added field -->
+- area_of_responsibility_id (Foreign Key to Areas) <!-- Added field -->
 - notes (Text)
 - created_at (DateTime)
 - Relationships:
@@ -131,6 +136,7 @@ A comprehensive employee shift roster application with React frontend and Flask 
 - status (String, default='pending')
 - approved_by (Foreign Key to Users)
 - approved_at (DateTime)
+- accepted_at (DateTime) <!-- Added field -->
 - notes (Text)
 - created_at (DateTime)
 
@@ -145,6 +151,7 @@ A comprehensive employee shift roster application with React frontend and Flask 
 - status (String, default='pending')
 - approved_by (Foreign Key to Users)
 - approved_at (DateTime)
+- action_comment (Text) <!-- Added field -->
 - created_at (DateTime)
 
 
@@ -237,6 +244,43 @@ A comprehensive employee shift roster application with React frontend and Flask 
 - POST /api/timesheets/generate - Generate from approved rosters
 - PUT /api/timesheets/{id} - Update timesheet
 - POST /api/timesheets/{id}/approve - Approve timesheet
+
+### Leave Management
+- GET /api/leave - List all leave requests
+- POST /api/leave - Create leave request
+- PUT /api/leave/{id} - Update leave request
+- DELETE /api/leave/{id} - Delete leave request
+- POST /api/leave/{id}/approve - Approve leave request
+- POST /api/leave/{id}/reject - Reject leave request
+
+### Licenses/Certificates
+- GET /api/licenses - List all licenses/certificates
+- POST /api/licenses - Add license/certificate
+- PUT /api/licenses/{id} - Update license/certificate
+- DELETE /api/licenses/{id} - Delete license/certificate
+- POST /api/employees/{id}/licenses - Assign license/certificate to employee
+
+### Notifications
+- GET /api/notifications - List notifications for a user
+- POST /api/notifications - Create notification
+
+### User Profile
+- GET /api/users/{id} - Get user profile
+- PUT /api/users/{id} - Update user profile
+
+### Community & Activity Logs
+- GET /api/activity_logs - Get activity logs
+- POST /api/activity_logs - Create activity log
+- GET /api/community_posts - Get community posts
+- POST /api/community_posts - Create community post
+- GET /api/post_replies - Get post replies
+- POST /api/post_replies - Create post reply
+
+### Leave Types
+- GET /api/leave_types - List all leave types
+- POST /api/leave_types - Add leave type
+- PUT /api/leave_types/{id} - Update leave type
+- DELETE /api/leave_types/{id} - Delete leave type
 
 ### Analytics
 - GET /api/analytics/dashboard - Dashboard metrics

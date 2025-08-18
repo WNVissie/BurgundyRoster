@@ -12,7 +12,7 @@ A comprehensive web application for managing employee shifts, schedules, and wor
 
 ### Core Functionality
 - **Employee Management**: Complete CRUD operations for employee data with roles, areas, and skills
-- **Shift Scheduling**: Drag-and-drop interface for creating and managing shift rosters
+- **Shift Scheduling**: Drag-and-drop interface for creating and managing shift rosters with approval for managers and acceptance from employees
 - **Role-Based Access**: Admin, Manager, and Employee roles with appropriate permissions
 - **Google OAuth**: Secure authentication with Google sign-in integration
 - **Analytics Dashboard**: Interactive charts and metrics for workforce insights
@@ -20,10 +20,10 @@ A comprehensive web application for managing employee shifts, schedules, and wor
 
 ### Advanced Features
 - **Drag-and-Drop Scheduling**: Intuitive shift assignment with visual feedback
-- **Approval Workflows**: Manager approval system for shift assignments
-- **Timesheet Management**: Automated timesheet generation from shift rosters
+- **Approval Workflows**: Manager approval system for shift assignments, leave, timesheets and acceptance from employees for shift assignment
+- **Timesheet Management**: Automated timesheet generation from shift rosters with approval from managers
 - **Skills Management**: Track employee skills and competencies
-- **Leave Management**: Handle various types of leave requests
+- **Leave Management**: Handle various types of leave requests with approval from managers
 - **Responsive Design**: Mobile-friendly interface for all devices
 
 ## 🏗️ Architecture
@@ -181,6 +181,11 @@ The application comes with pre-configured demo accounts:
 | Admin | admin@company.com | admin123 | Full system access |
 | Manager | manager@company.com | manager123 | Employee and shift management |
 | Employee | employee@company.com | employee123 | View own schedules |
+
+**Setup ffor dev testing: **
+wanda.nezar@gmail.com - admin
+kailteh.phelan@gmail.com - manager
+Densil.Govender@gmail.com - employee
 
 ## 📚 API Documentation
 

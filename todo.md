@@ -1,4 +1,4 @@
-	- [ ] Look at adding dockworker logs for fuel consumption based on employee ID and vehicle
+	- [ x] Look at adding dockworker logs for fuel consumption based on employee ID and vehicle
 	- [ ] Add option to upload a document for leave (e.g., medical certificate)
 	- [ ] Add additional leave types
 ## Next session (2025-08-13): Bugfixes and features
