@@ -51,7 +51,7 @@ function App() {
             } />
             
             <Route path="/employees" element={
-              <ProtectedRoute requiredRole="Manager">
+              <ProtectedRoute requiredPermission="manage_employees">
                 <Layout>
                   <Employees />
                 </Layout>
@@ -83,7 +83,7 @@ function App() {
             } />
             
             <Route path="/reports" element={
-              <ProtectedRoute requiredRole="Manager">
+              <ProtectedRoute requiredPermission="view_analytics">
                 <Layout>
                   <Reports />
                 </Layout>

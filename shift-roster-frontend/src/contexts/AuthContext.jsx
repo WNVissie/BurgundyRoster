@@ -127,16 +127,19 @@ export function AuthProvider({ children }) {
   };
 
   const hasPermission = (permission) => {
+    const userRole = state.user?.role?.name;
     // Admins have all permissions
-    if (state.user?.role?.name === 'Admin') return true;
+    if (userRole && userRole.toLowerCase() === 'admin') return true;
     if (!state.user?.role?.permissions) return false;
     return state.user.role.permissions[permission] === true;
   };
 
   const hasRole = (roleName) => {
+    const userRole = state.user?.role?.name;
+    if (!userRole) return false;
     // Admins satisfy any role requirement
-    if (state.user?.role?.name === 'Admin') return true;
-    return state.user?.role?.name === roleName;
+    if (userRole.toLowerCase() === 'admin') return true;
+    return userRole.toLowerCase() === roleName.toLowerCase();
   };
 
   const isAdmin = () => hasRole('Admin');
