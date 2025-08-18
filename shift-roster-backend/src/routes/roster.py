@@ -23,9 +23,7 @@ def get_roster():
         shift_id = request.args.get('shift_id', type=int)
         status = request.args.get('status')
         
-        if current_user.role_ref.name == 'Admin':
-            query = ShiftRoster.query
-        elif current_user.role_ref.name == 'Manager':
+        if current_user.role_ref and current_user.role_ref.name.lower() in ['admin', 'manager']:
             query = ShiftRoster.query
         else:
             query = ShiftRoster.query.filter(ShiftRoster.employee_id == current_user.id)
@@ -72,7 +70,7 @@ def create_roster_entry():
         if not current_user:
             return jsonify({'error': 'User not found. Please login again.'}), 401
         
-        if current_user.role_ref.name not in ['Admin', 'Manager']:
+        if not current_user.role_ref or current_user.role_ref.name.lower() not in ['admin', 'manager']:
             return jsonify({'error': 'Insufficient permissions'}), 403
         
         data = request.get_json()
@@ -141,7 +139,7 @@ def update_roster_entry(roster_id):
         if not current_user:
             return jsonify({'error': 'User not found. Please login again.'}), 401
         
-        if current_user.role_ref.name not in ['Admin', 'Manager']:
+        if not current_user.role_ref or current_user.role_ref.name.lower() not in ['admin', 'manager']:
             return jsonify({'error': 'Insufficient permissions'}), 403
         
         roster_entry = ShiftRoster.query.get(roster_id)
@@ -197,7 +195,7 @@ def delete_roster_entry(roster_id):
         if not current_user:
             return jsonify({'error': 'User not found. Please login again.'}), 401
         
-        if current_user.role_ref.name not in ['Admin', 'Manager']:
+        if not current_user.role_ref or current_user.role_ref.name.lower() not in ['admin', 'manager']:
             return jsonify({'error': 'Insufficient permissions'}), 403
         
         roster_entry = ShiftRoster.query.get(roster_id)
@@ -225,7 +223,7 @@ def approve_roster_entry(roster_id):
         if not current_user:
             return jsonify({'error': 'User not found. Please login again.'}), 401
         
-        if current_user.role_ref.name not in ['Admin', 'Manager']:
+        if not current_user.role_ref or current_user.role_ref.name.lower() not in ['admin', 'manager']:
             return jsonify({'error': 'Insufficient permissions'}), 403
         
         roster_entry = ShiftRoster.query.get(roster_id)
@@ -282,7 +280,7 @@ def create_bulk_roster():
     try:
         current_user = get_current_user()
         
-        if current_user.role_ref.name not in ['Admin', 'Manager']:
+        if not current_user.role_ref or current_user.role_ref.name.lower() not in ['admin', 'manager']:
             return jsonify({'error': 'Insufficient permissions'}), 403
         
         data = request.get_json()

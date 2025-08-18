@@ -15,7 +15,7 @@ def get_employees():
         if not current_user:
             return jsonify({'error': 'User not found. Please login again.'}), 401
         
-        if current_user.role_ref.name not in ['Admin', 'Manager']:
+        if not current_user.role_ref or current_user.role_ref.name.lower() not in ['admin', 'manager']:
             return jsonify({'error': 'Insufficient permissions'}), 403
         
         role_id = request.args.get('role_id', type=int)
@@ -115,7 +115,7 @@ def get_employee(employee_id):
         if not current_user:
             return jsonify({'error': 'User not found. Please login again.'}), 401
         
-        if current_user.role_ref.name not in ['Admin', 'Manager'] and current_user.id != employee_id:
+        if (not current_user.role_ref or current_user.role_ref.name.lower() not in ['admin', 'manager']) and current_user.id != employee_id:
             return jsonify({'error': 'Insufficient permissions'}), 403
         
         employee = User.query.get(employee_id)
@@ -143,7 +143,7 @@ def update_employee(employee_id):
         data = request.get_json()
         
         allowed_fields = []
-        if current_user.role_ref.name == 'Admin':
+        if current_user.role_ref and current_user.role_ref.name.lower() == 'admin':
             allowed_fields = ['email', 'name', 'surname', 'employee_id', 'contact_no', 'alt_contact_name', 'alt_contact_no', 'licenses', 'designation_id', 'role_id', 'area_of_responsibility_id', 'rate_type', 'rate_value']
         elif current_user.id == employee_id:
             allowed_fields = ['contact_no']
