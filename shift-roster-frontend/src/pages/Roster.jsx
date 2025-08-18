@@ -6,10 +6,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { 
   Calendar as CalendarIcon, 
   Grip,
-  List
+  List,
+  Plus,
+  Clock,
+  User,
+  CheckCircle,
+  AlertCircle,
+  XCircle,
+  ChevronLeft,
+  ChevronRight,
+  Mail,
+  MessageSquare
 } from 'lucide-react';
-
-// Original static roster view (keeping for comparison)
 import { useAuth } from '../contexts/AuthContext';
 import api, { rosterAPI, employeesAPI, shiftsAPI, areasAPI } from '../lib/api';
 import { Badge } from '../components/ui/badge';
@@ -32,19 +40,6 @@ import {
   SelectValue,
 } from '../components/ui/select';
 import { Calendar } from '../components/ui/calendar';
-import { 
-  Plus, 
-  Clock, 
-  User, 
-  CheckCircle, 
-  AlertCircle,
-  XCircle,
-  Filter,
-  ChevronLeft,
-  ChevronRight,
-  Mail,
-  MessageSquare
-} from 'lucide-react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, parseISO } from 'date-fns';
 
 function StaticRosterView() {
@@ -55,7 +50,6 @@ function StaticRosterView() {
   const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState('');
@@ -157,8 +151,6 @@ function StaticRosterView() {
     return shifts.find(s => s.id === shiftId);
   };
 
-  // status helpers moved inline using colored badges
-
   const navigateWeek = (direction) => {
     setCurrentWeek(prev => addDays(prev, direction * 7));
   };
@@ -175,7 +167,6 @@ function StaticRosterView() {
 
   return (
     <div className="space-y-6">
-      {/* Week Navigation */}
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
@@ -196,57 +187,9 @@ function StaticRosterView() {
               <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
-          {/* Export controls */}
-          <div className="mt-4 flex items-center gap-2 justify-end">
-            <Button
-              variant="outline"
-              onClick={async () => {
-                try {
-                  const params = {
-                    start_date: format(weekDays[0], 'yyyy-MM-dd'),
-                    end_date: format(weekDays[6], 'yyyy-MM-dd')
-                  };
-                  const res = await api.get('/export/roster/excel', { params, responseType: 'blob' });
-                  const url = window.URL.createObjectURL(new Blob([res.data]));
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `roster_${format(new Date(), 'yyyyMMdd_HHmmss')}.xlsx`;
-                  a.click();
-                  window.URL.revokeObjectURL(url);
-                } catch {
-                  setError('Failed to export roster to Excel');
-                }
-              }}
-            >
-              Export Excel
-            </Button>
-            <Button
-              variant="outline"
-              onClick={async () => {
-                try {
-                  const params = {
-                    start_date: format(weekDays[0], 'yyyy-MM-dd'),
-                    end_date: format(weekDays[6], 'yyyy-MM-dd')
-                  };
-                  const res = await api.get('/export/roster/pdf', { params, responseType: 'blob' });
-                  const url = window.URL.createObjectURL(new Blob([res.data]));
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `roster_${format(new Date(), 'yyyyMMdd_HHmmss')}.pdf`;
-                  a.click();
-                  window.URL.revokeObjectURL(url);
-                } catch {
-                  setError('Failed to export roster to PDF');
-                }
-              }}
-            >
-              Export PDF
-            </Button>
-          </div>
         </CardContent>
       </Card>
 
-      {/* Add Shift Dialog */}
       {(isAdmin() || isManager()) && (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -337,7 +280,6 @@ function StaticRosterView() {
         </Dialog>
       )}
 
-      {/* Error Alert */}
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -345,7 +287,6 @@ function StaticRosterView() {
         </Alert>
       )}
 
-      {/* Weekly Calendar View with colors and scroll container */}
       <div className="grid grid-cols-7 gap-4 max-h-[70vh] overflow-y-auto pr-2">
         {weekDays.map((day, index) => {
           const dayRoster = getRosterForDate(day);
@@ -465,7 +406,6 @@ function StaticRosterView() {
                             </div>
                           )}
 
-                          {/* Accept button for employees on their own pending shifts */}
                           {isEmployee() && rosterEntry.employee_id === user.id && rosterEntry.status === 'approved' && !rosterEntry.accepted_at && (
                             <Button
                               size="sm"
@@ -496,168 +436,9 @@ function StaticRosterView() {
           );
         })}
       </div>
-
-      {/* Bulk Actions */}
-      {selectedShifts.size > 0 && (
-        <Card>
-          <CardContent className="p-4 flex items-center justify-between">
-            <p className="text-sm font-medium">{selectedShifts.size} shift(s) selected</p>
-            <div className="flex space-x-2">
-              <Button
-                onClick={() => {
-                  let message = 'Selected Shifts:\n\n';
-                  selectedShifts.forEach(id => {
-                    const r = roster.find(r => r.id === id);
-                    if (r) {
-                      const e = getEmployee(r.employee_id);
-                      const s = getShift(r.shift_id);
-                      message += `- ${e?.name} ${e?.surname}: ${s?.name} on ${format(parseISO(r.date), 'MMM d, yyyy')} (${s?.start_time}-${s?.end_time})\n`;
-                    }
-                  });
-                  navigator.clipboard.writeText(message);
-                  alert('Shift details copied to clipboard!');
-                }}
-              >
-                Copy for WhatsApp
-              </Button>
-              <Button
-                onClick={() => {
-                  const selectedRosterEntries = Array.from(selectedShifts).map(id => roster.find(r => r.id === id)).filter(Boolean);
-                  const employeesToEmail = [...new Set(selectedRosterEntries.map(r => getEmployee(r.employee_id)))];
-                  const emails = employeesToEmail.map(e => e.email).join(',');
-
-                  let body = 'Hi Team,\n\nHere are the selected shift details:\n\n';
-                  selectedRosterEntries.forEach(r => {
-                    const e = getEmployee(r.employee_id);
-                    const s = getShift(r.shift_id);
-                    body += `- ${e?.name} ${e?.surname}: ${s?.name} on ${format(parseISO(r.date), 'MMM d, yyyy')} (${s?.start_time}-${s?.end_time})\n`;
-                  });
-
-                  window.location.href = `mailto:${emails}?subject=Shift Schedule&body=${encodeURIComponent(body)}`;
-                }}
-              >
-                Email Selected
-              </Button>
-              <Button variant="outline" onClick={() => setSelectedShifts(new Set())}>Clear Selection</Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="text-sm font-medium">Approved</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {roster.filter(r => r.status === 'approved').length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <AlertCircle className="h-5 w-5 text-yellow-600" />
-              <div>
-                <p className="text-sm font-medium">Pending</p>
-                <p className="text-2xl font-bold text-yellow-600">
-                  {roster.filter(r => r.status === 'pending').length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <XCircle className="h-5 w-5 text-red-600" />
-              <div>
-                <p className="text-sm font-medium">Rejected</p>
-                <p className="text-2xl font-bold text-red-600">
-                  {roster.filter(r => r.status === 'rejected').length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <User className="h-5 w-5 text-blue-600" />
-              <div>
-                <p className="text-sm font-medium">Total Shifts</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  {roster.length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Employee-specific shift view */}
-      {isEmployee() && (
-        <div className="mt-6">
-          <h2 className="text-xl font-semibold mb-4">My Shifts</h2>
-          
-          {shifts
-            .filter(shift => isEmployee() ? shift.employee_id === user.id : true)
-            .map(shift => (
-              <div key={shift.id} className="flex items-center justify-between p-3 rounded-md border mb-2"
-                style={{
-                  backgroundColor: shift.status === 'accepted' ? '#e8f5e9' : '#f3f4f6'
-                }}
-              >
-                <div>
-                  <div className="text-sm font-medium">
-                    {shift.date} - {shift.employee_name}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {shift.start_time} - {shift.end_time} • {shift.hours}h
-                  </div>
-                </div>
-                
-                <Button
-                  style={{
-                    backgroundColor: shift.status === 'accepted' ? '#4caf50' : '#e0e0e0',
-                    color: shift.status === 'accepted' ? '#fff' : '#000',
-                    border: 'none'
-                  }}
-                  onClick={async () => {
-                    await shiftsAPI.accept(shift.id);
-                    await fetchData();
-                  }}
-                  disabled={shift.status === 'accepted'}
-                >
-                  {shift.status === 'accepted' ? 'Accepted' : 'Accept'}
-                </Button>
-              </div>
-            ))}
-        </div>
-      )}
     </div>
   );
 }
-
-const TraditionalShiftView = ({ shifts }) => {
-  return (
-    <div>
-      {shifts.map(shift => (
-        <div key={shift.id}>
-          {/* ...shift details... */}
-        </div>
-      ))}
-    </div>
-  );
-};
 
 export function Roster() {
   const { isAdmin, isManager, isEmployee } = useAuth();
@@ -671,7 +452,6 @@ export function Roster() {
         </div>
       </div>
 
-      {/* Tabs for different views */}
       {(isAdmin() || isManager()) ? (
         <Tabs defaultValue="drag-drop" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
@@ -692,10 +472,8 @@ export function Roster() {
           </TabsContent>
         </Tabs>
       ) : (
-        // Employees only see traditional view
         <StaticRosterView />
       )}
     </div>
   );
 }
-

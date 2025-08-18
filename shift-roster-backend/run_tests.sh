@@ -3,6 +3,9 @@
 # Exit immediately if a command exits with a non-zero status.
 set -e
 
+# Change to the backend directory
+cd shift-roster-backend
+
 # Ensure the database is in a clean, seeded state
 echo "Seeding the database for test..."
 python run_seed.py

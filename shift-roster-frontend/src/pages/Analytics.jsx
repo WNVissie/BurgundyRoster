@@ -5,7 +5,6 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Calendar } from '../components/ui/calendar';
 import {
   Select,
   SelectContent,
@@ -25,8 +24,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
   AreaChart,
   Area
 } from 'recharts';
@@ -38,14 +35,10 @@ import {
   BarChart3,
   PieChart as PieChartIcon,
   Download,
-  Filter,
   RefreshCw,
   AlertCircle,
   CheckCircle,
-  XCircle,
-  UserCheck,
-  UserX,
-  Award
+  UserCheck
 } from 'lucide-react';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 
@@ -53,7 +46,6 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'
 
 export function Analytics() {
   const [weeklyTrends, setWeeklyTrends] = useState([]);
-  const [analytics, setAnalytics] = useState({});
   const [employeesByRole, setEmployeesByRole] = useState([]);
   const [employeesByArea, setEmployeesByArea] = useState([]);
   const [totalEmployees, setTotalEmployees] = useState(0);
@@ -62,7 +54,8 @@ export function Analytics() {
     employees_on_shift: 0,
     available_employees: 0,
     pending_approvals: 0,
-    total_scheduled_hours: 0
+    total_scheduled_hours: 0,
+    employees_on_leave: 0
   });
   const [shiftUtilization, setShiftUtilization] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -76,91 +69,58 @@ export function Analytics() {
 
   useEffect(() => {
     fetchAnalytics();
-    fetchSkillDistribution();
   }, [dateRange]);
 
   const fetchAnalytics = async () => {
-      // Fetch weekly approval trends
-      const weeklyTrendsRes = await analyticsAPI.getWeeklyApprovalTrends().catch(() => ({ data: { data: [] } }));
-      if (weeklyTrendsRes.data && weeklyTrendsRes.data.data) {
-        setWeeklyTrends(weeklyTrendsRes.data.data.map(item => ({
-          week: item.week,
-          approved: item.approved,
-          pending: item.pending,
-          rejected: item.rejected
-        })));
-      }
     try {
       setLoading(true);
       
-      // Fetch all analytics data
-      const [dashboardRes, roleRes, areaRes, shiftUtilRes] = await Promise.all([
-        analyticsAPI.getDashboard({
-          start_date: dateRange.start,
-          end_date: dateRange.end
-        }).catch(() => ({ data: {} })), // Handle if dashboard endpoint has issues
+      const [dashboardRes, roleRes, areaRes, shiftUtilRes, weeklyTrendsRes, skillDistRes] = await Promise.all([
+        analyticsAPI.getDashboard({ start_date: dateRange.start, end_date: dateRange.end }),
         analyticsAPI.getEmployeesByRole(),
-        analyticsAPI.getEmployeesByArea().catch(() => ({ data: [] })), // Handle if area endpoint doesn't exist yet
-        analyticsAPI.getShiftCoverage({
-          start_date: dateRange.start,
-          end_date: dateRange.end
-        }).catch(() => ({ data: { utilization: [] } }))
+        analyticsAPI.getEmployeesByArea(),
+        analyticsAPI.getShiftCoverage({ start_date: dateRange.start, end_date: dateRange.end }),
+        analyticsAPI.getWeeklyApprovalTrends(),
+        analyticsAPI.getSkillDistribution()
       ]);
 
-      setAnalytics(dashboardRes.data);
-
-      // Set dashboard metrics
       if (dashboardRes.data && dashboardRes.data.metrics) {
         setDashboardMetrics(dashboardRes.data.metrics);
         setTotalEmployees(dashboardRes.data.metrics.total_employees);
-      } else {
-        // Fallback to role-based count if dashboard fails
-        const roleData = roleRes.data.data.map((item, index) => ({
-          name: item.role_name,
-          value: item.employee_count,
-          color: COLORS[index % COLORS.length]
-        }));
-        const total = roleData.reduce((sum, item) => sum + item.value, 0);
-        setTotalEmployees(total);
-        setEmployeesByRole(roleData);
       }
 
-      // Transform role data for the pie chart
-      const roleData = roleRes.data.data.map((item, index) => ({
+      const roleData = (roleRes.data.data || []).map((item, index) => ({
         name: item.role_name,
         value: item.employee_count,
         color: COLORS[index % COLORS.length]
       }));
       setEmployeesByRole(roleData);
-
-      // Transform area data if available
-      if (areaRes.data && areaRes.data.data) {
-        setEmployeesByArea(areaRes.data.data);
+      if (!dashboardMetrics.total_employees) {
+          setTotalEmployees(roleData.reduce((sum, item) => sum + item.value, 0));
       }
 
-      // Set shift utilization data
-      if (shiftUtilRes.data && shiftUtilRes.data.utilization) {
-        setShiftUtilization(shiftUtilRes.data.utilization.map(item => ({
-          shift: item.shift_name,
-          planned: item.planned,
-          actual: item.actual,
-          utilization: item.utilization
-        })));
-      }
+      setEmployeesByArea(areaRes.data.data || []);
+
+      setShiftUtilization((shiftUtilRes.data.utilization || []).map(item => ({
+        shift: item.shift_name,
+        planned: item.planned,
+        actual: item.actual,
+        utilization: item.utilization
+      })));
+
+      setWeeklyTrends((weeklyTrendsRes.data.data || []).map(item => ({
+        week: item.week,
+        approved: item.approved + item.accepted,
+        pending: item.pending,
+        rejected: item.rejected
+      })));
+
+      setSkillDistribution(skillDistRes.data.data || []);
       
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to fetch analytics data');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchSkillDistribution = async () => {
-    try {
-      const res = await analyticsAPI.getSkillDistribution();
-      setSkillDistribution(res.data.data || []);
-    } catch (err) {
-      setSkillDistribution([]);
     }
   };
 
@@ -197,12 +157,6 @@ export function Analytics() {
     });
   };
 
-  const exportChart = (chartName) => {
-    // In a real implementation, this would export the chart as PDF/PNG
-    console.log(`Exporting ${chartName} chart...`);
-    alert(`Export functionality for ${chartName} would be implemented here`);
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -211,13 +165,8 @@ export function Analytics() {
     );
   }
 
-  // shiftUtilization now comes from backend
-
-  // weeklyTrends now comes from backend
-
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
@@ -244,7 +193,6 @@ export function Analytics() {
         </div>
       </div>
 
-      {/* Error Alert */}
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -252,7 +200,6 @@ export function Analytics() {
         </Alert>
       )}
 
-      {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardContent className="p-6">
@@ -260,8 +207,7 @@ export function Analytics() {
               <Users className="h-8 w-8 text-blue-600" />
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Employees</p>
-                <p className="text-3xl font-bold text-blue-600">{dashboardMetrics.total_employees || totalEmployees}</p>
-                <p className="text-xs text-gray-500">Active employees</p>
+                <p className="text-3xl font-bold text-blue-600">{totalEmployees}</p>
               </div>
             </div>
           </CardContent>
@@ -273,13 +219,7 @@ export function Analytics() {
               <Clock className="h-8 w-8 text-green-600" />
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Shifts</p>
-                <p className="text-3xl font-bold text-green-600">{dashboardMetrics.employees_on_shift || 0}</p>
-                <p className="text-xs text-gray-500">
-                  {dashboardMetrics.employees_on_shift > 0 
-                    ? `${dashboardMetrics.total_scheduled_hours || 0} hours scheduled` 
-                    : 'No shifts scheduled yet'
-                  }
-                </p>
+                <p className="text-3xl font-bold text-green-600">{dashboardMetrics.employees_on_shift}</p>
               </div>
             </div>
           </CardContent>
@@ -291,13 +231,7 @@ export function Analytics() {
               <CheckCircle className="h-8 w-8 text-emerald-600" />
               <div>
                 <p className="text-sm font-medium text-gray-600">Pending Approvals</p>
-                <p className="text-3xl font-bold text-emerald-600">{dashboardMetrics.pending_approvals || 0}</p>
-                <p className="text-xs text-gray-500">
-                  {dashboardMetrics.pending_approvals > 0 
-                    ? 'Shifts waiting approval' 
-                    : 'All shifts processed'
-                  }
-                </p>
+                <p className="text-3xl font-bold text-emerald-600">{dashboardMetrics.pending_approvals}</p>
               </div>
             </div>
           </CardContent>
@@ -309,59 +243,31 @@ export function Analytics() {
               <UserCheck className="h-8 w-8 text-purple-600" />
               <div>
                 <p className="text-sm font-medium text-gray-600">Available Staff</p>
-                <p className="text-3xl font-bold text-purple-600">{dashboardMetrics.available_employees || totalEmployees}</p>
-                <p className="text-xs text-gray-500">
-                  {dashboardMetrics.employees_on_shift > 0 
-                    ? `${dashboardMetrics.employees_on_shift} on shift` 
-                    : 'All staff available'
-                  }
-                </p>
+                <p className="text-3xl font-bold text-purple-600">{dashboardMetrics.available_employees}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Analytics Tabs */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="employees">Employees</TabsTrigger>
           <TabsTrigger value="shifts">Shifts</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="skills">Skills</TabsTrigger>
         </TabsList>
 
-        {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Employee Distribution by Role */}
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center">
-                    <PieChartIcon className="h-5 w-5 mr-2" />
-                    Employee Distribution by Role
-                  </CardTitle>
-                  <CardDescription>Current workforce composition</CardDescription>
-                </div>
-                <Button variant="outline" size="sm" onClick={() => exportChart('role-distribution')}>
-                  <Download className="h-4 w-4" />
-                </Button>
+              <CardHeader>
+                <CardTitle>Employee Distribution by Role</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
-                    <Pie
-                      data={employeesByRole}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, value }) => `${name}: ${value}`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
+                    <Pie data={employeesByRole} cx="50%" cy="50%" labelLine={false} label={({ name, value }) => `${name}: ${value}`} outerRadius={80} fill="#8884d8" dataKey="value">
                       {employeesByRole.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
@@ -372,19 +278,9 @@ export function Analytics() {
               </CardContent>
             </Card>
 
-            {/* Shift Utilization */}
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center">
-                    <BarChart3 className="h-5 w-5 mr-2" />
-                    Shift Utilization
-                  </CardTitle>
-                  <CardDescription>Planned vs actual shift coverage</CardDescription>
-                </div>
-                <Button variant="outline" size="sm" onClick={() => exportChart('shift-utilization')}>
-                  <Download className="h-4 w-4" />
-                </Button>
+              <CardHeader>
+                <CardTitle>Shift Utilization</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -402,19 +298,9 @@ export function Analytics() {
             </Card>
           </div>
 
-          {/* Weekly Trends */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center">
-                  <TrendingUp className="h-5 w-5 mr-2" />
-                  Weekly Approval Trends
-                </CardTitle>
-                <CardDescription>Shift approval patterns over time</CardDescription>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => exportChart('weekly-trends')}>
-                <Download className="h-4 w-4" />
-              </Button>
+            <CardHeader>
+              <CardTitle>Weekly Approval Trends</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -433,83 +319,29 @@ export function Analytics() {
           </Card>
         </TabsContent>
 
-        {/* Employees Tab */}
         <TabsContent value="employees" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Employees by Area */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Employees by Area</CardTitle>
-                <CardDescription>Distribution across work areas</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={employeesByArea}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="employees" fill="#8884d8" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            {/* Employee Status */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Employee Availability</CardTitle>
-                <CardDescription>Current status breakdown</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <UserCheck className="h-5 w-5 text-green-600" />
-                    <span className="font-medium">Available</span>
-                  </div>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
-                    {dashboardMetrics.available_employees || totalEmployees}
-                  </Badge>
-                </div>
-                
-                <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <Clock className="h-5 w-5 text-yellow-600" />
-                    <span className="font-medium">On Shift</span>
-                  </div>
-                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                    {dashboardMetrics.employees_on_shift || 0}
-                  </Badge>
-                </div>
-                
-                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <CalendarIcon className="h-5 w-5 text-blue-600" />
-                    <span className="font-medium">On Leave</span>
-                  </div>
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                    {dashboardMetrics.employees_on_leave || 0}
-                  </Badge>
-                </div>
-                
-                <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <UserX className="h-5 w-5 text-red-600" />
-                    <span className="font-medium">Sick Leave</span>
-                  </div>
-                  <Badge variant="secondary" className="bg-red-100 text-red-800">0</Badge>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Employees by Area</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={employeesByArea}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="employees" fill="#8884d8" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
         </TabsContent>
 
-        {/* Shifts Tab */}
         <TabsContent value="shifts" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Shift Coverage by Area</CardTitle>
-              <CardDescription>Number of shifts scheduled per area</CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={400}>
@@ -527,61 +359,17 @@ export function Analytics() {
           </Card>
         </TabsContent>
 
-        {/* Performance Tab */}
-        <TabsContent value="performance" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-              <CardContent className="p-6 text-center">
-                <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
-                <p className="text-2xl font-bold text-green-600">94%</p>
-                <p className="text-sm text-gray-600">Approval Rate</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-6 text-center">
-                <Clock className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-                <p className="text-2xl font-bold text-blue-600">2.3h</p>
-                <p className="text-sm text-gray-600">Avg Response Time</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-6 text-center">
-                <TrendingUp className="h-12 w-12 text-purple-600 mx-auto mb-4" />
-                <p className="text-2xl font-bold text-purple-600">92%</p>
-                <p className="text-sm text-gray-600">Utilization Rate</p>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Skills Tab */}
         <TabsContent value="skills" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Award className="h-5 w-5 mr-2" />
-                Skill Distribution
-              </CardTitle>
-              <CardDescription>Employee skills across the organization</CardDescription>
+              <CardTitle>Skill Distribution</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {skillDistribution.map((skill, index) => (
-                  <div key={skill.skill} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <Award className="h-5 w-5 text-blue-600" />
-                      <div>
-                        <p className="font-medium">{skill.skill}</p>
-                        <p className="text-sm text-gray-500">{skill.employees} employees</p>
-                      </div>
-                    </div>
-                    <Badge 
-                      variant={skill.level === 'High' ? 'default' : skill.level === 'Medium' ? 'secondary' : 'outline'}
-                    >
-                      {skill.level}
-                    </Badge>
+                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                    <p className="font-medium">{skill.skill}</p>
+                    <Badge>{skill.employees} employees</Badge>
                   </div>
                 ))}
               </div>
@@ -592,4 +380,3 @@ export function Analytics() {
     </div>
   );
 }
-

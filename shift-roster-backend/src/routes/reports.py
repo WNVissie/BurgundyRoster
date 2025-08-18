@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required
 from src.models.models import db, User, Skill, License, Role, AreaOfResponsibility, Designation, ShiftRoster, LeaveRequest
 from src.utils.decorators import manager_required
 from sqlalchemy import and_
-from datetime import date
+from datetime import date, datetime
 
 reports_bp = Blueprint('reports', __name__)
 
@@ -17,7 +17,6 @@ def employee_search_report():
     Also shows current shift status.
     """
     try:
-        # Get filter criteria from query params
         skill_ids = request.args.getlist('skill_ids', type=int)
         license_ids = request.args.getlist('license_ids', type=int)
         role_ids = request.args.getlist('role_ids', type=int)
@@ -41,17 +40,14 @@ def employee_search_report():
         if designation_ids:
             query = query.filter(User.designation_id.in_(designation_ids))
 
-        # Use distinct to avoid duplicate users if they have multiple matching skills/licenses
         employees = query.distinct().all()
 
         today = date.today()
         results = []
 
         for employee in employees:
-            # Determine current status
             status = 'Available'
 
-            # Check for shift
             on_shift = ShiftRoster.query.filter(
                 and_(
                     ShiftRoster.employee_id == employee.id,
@@ -62,7 +58,6 @@ def employee_search_report():
             if on_shift:
                 status = 'On Shift'
 
-            # Check for leave (overrides shift status if both exist)
             on_leave = LeaveRequest.query.filter(
                 and_(
                     LeaveRequest.employee_id == employee.id,
@@ -79,6 +74,35 @@ def employee_search_report():
             results.append(emp_dict)
 
         return jsonify(results), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@reports_bp.route('/employee-history/<int:employee_id>', methods=['GET'])
+@jwt_required()
+@manager_required
+def employee_history_report(employee_id):
+    """
+    Get booking history for a single employee.
+    """
+    try:
+        employee = User.query.get(employee_id)
+        if not employee:
+            return jsonify({'error': 'Employee not found'}), 404
+
+        history = ShiftRoster.query.filter_by(employee_id=employee_id).order_by(ShiftRoster.date.desc()).all()
+
+        from sqlalchemy import func
+        shift_type_counts = db.session.query(ShiftRoster.shift.name, func.count(ShiftRoster.id)).join(ShiftRoster.shift).filter(ShiftRoster.employee_id == employee_id).group_by(ShiftRoster.shift.name).all()
+
+        return jsonify({
+            'employee_details': employee.to_dict(),
+            'shift_history': [entry.to_dict() for entry in history],
+            'summary': {
+                'total_shifts': len(history),
+                'shift_type_summary': [{'type': name, 'count': count} for name, count in shift_type_counts],
+            }
+        }), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -108,38 +132,6 @@ def shift_acceptance_report():
         roster_entries = query.order_by(ShiftRoster.date, ShiftRoster.employee_id).all()
 
         return jsonify([entry.to_dict() for entry in roster_entries]), 200
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@reports_bp.route('/employee-history/<int:employee_id>', methods=['GET'])
-@jwt_required()
-@manager_required
-def employee_history_report(employee_id):
-    """
-    Get booking history for a single employee.
-    """
-    try:
-        employee = User.query.get(employee_id)
-        if not employee:
-            return jsonify({'error': 'Employee not found'}), 404
-
-        # Get all shift roster entries for this employee, ordered by date
-        history = ShiftRoster.query.filter_by(employee_id=employee_id).order_by(ShiftRoster.date.desc()).all()
-
-        # Get a summary of shift types, roles, etc.
-        shift_type_counts = db.session.query(Shift.name, func.count(ShiftRoster.id)).join(ShiftRoster).filter(ShiftRoster.employee_id == employee_id).group_by(Shift.name).all()
-
-        # Note: Role, Area, Designation history is not tracked. We can only show current ones.
-
-        return jsonify({
-            'employee_details': employee.to_dict(),
-            'shift_history': [entry.to_dict() for entry in history],
-            'summary': {
-                'total_shifts': len(history),
-                'shift_type_summary': [{'type': name, 'count': count} for name, count in shift_type_counts],
-            }
-        }), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500

@@ -9,7 +9,7 @@ import { format } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 
 const Timesheets = () => {
-  const { user, isEmployee, isAdmin, isManager } = useAuth();
+  const { user, isAdmin, isManager } = useAuth();
   const [timesheets, setTimesheets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState('');
@@ -40,13 +40,13 @@ const Timesheets = () => {
 
   function getCurrentWeek() {
     const today = new Date();
-    const first = today.getDate() - today.getDay() + 1;
-    const last = first + 6;
-    const monday = new Date(today.setDate(first));
-    const sunday = new Date(today.setDate(last));
+    const firstDayOfWeek = today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1);
+    const monday = new Date(today.setDate(firstDayOfWeek));
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
     return {
-      start: monday.toISOString().slice(0, 10),
-      end: sunday.toISOString().slice(0, 10)
+      start: format(monday, 'yyyy-MM-dd'),
+      end: format(sunday, 'yyyy-MM-dd')
     };
   }
 

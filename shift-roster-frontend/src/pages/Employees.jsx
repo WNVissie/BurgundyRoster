@@ -61,7 +61,6 @@ export function Employees() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  // Use non-empty sentinels for Radix Select filters
   const [selectedRole, setSelectedRole] = useState('all');
   const [selectedArea, setSelectedArea] = useState('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -71,18 +70,15 @@ export function Employees() {
     surname: '',
     employee_id: '',
     contact_no: '',
-  email: '',
-  designation_id: '',
+    email: '',
+    designation_id: '',
     role_id: '',
     area_of_responsibility_id: '',
     rate_type: '',
     rate_value: ''
   });
-  const [selectedSkills, setSelectedSkills] = useState([]); // array of skill IDs (string)
+  const [selectedSkills, setSelectedSkills] = useState([]);
   const [initialSelectedSkills, setInitialSelectedSkills] = useState([]);
-  const [selectedLicenses, setSelectedLicenses] = useState([]); // array of license IDs (string)
-  const [licenseExpiry, setLicenseExpiry] = useState({}); // { [licenseId]: 'YYYY-MM-DD' }
-  const [initialLicensesMap, setInitialLicensesMap] = useState({}); // { [licenseId]: 'YYYY-MM-DD' }
 
   useEffect(() => {
     fetchData();
@@ -113,24 +109,15 @@ export function Employees() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      if (editingEmployee) {
-        const updateData = {
-          email: formData.email,
-          name: formData.name,
-          surname: formData.surname,
-          employee_id: formData.employee_id,
-          contact_no: formData.contact_no,
-          ...(formData.alt_contact_name ? { alt_contact_name: formData.alt_contact_name } : {}),
-          ...(formData.alt_contact_no ? { alt_contact_no: formData.alt_contact_no } : {}),
-          ...(formData.designation_id ? { designation_id: parseInt(formData.designation_id, 10) } : {}),
-          ...(formData.role_id ? { role_id: parseInt(formData.role_id, 10) } : {}),
-          ...(formData.area_of_responsibility_id ? { area_of_responsibility_id: parseInt(formData.area_of_responsibility_id, 10) } : {}),
-          rate_type: formData.rate_type,
-          rate_value: formData.rate_value,
-        };
-        await employeesAPI.update(editingEmployee.id, updateData);
+      const data = {
+        ...formData,
+        designation_id: formData.designation_id ? parseInt(formData.designation_id, 10) : null,
+        role_id: parseInt(formData.role_id, 10),
+        area_of_responsibility_id: formData.area_of_responsibility_id ? parseInt(formData.area_of_responsibility_id, 10) : null,
+      };
 
-        // Sync skills
+      if (editingEmployee) {
+        await employeesAPI.update(editingEmployee.id, data);
         const initialSet = new Set(initialSelectedSkills.map(String));
         const currentSet = new Set(selectedSkills.map(String));
         const toAdd = [...currentSet].filter(x => !initialSet.has(x));
@@ -141,84 +128,18 @@ export function Employees() {
         for (const sid of toRemove) {
           await employeesAPI.removeSkill(editingEmployee.id, parseInt(sid, 10));
         }
-
-        // Sync licenses
-        const initialMap = initialLicensesMap; // {id: date}
-        const currentIds = new Set(selectedLicenses.map(String));
-        const initialIds = new Set(Object.keys(initialMap));
-        // Adds
-        for (const lid of currentIds) {
-          if (!initialIds.has(lid)) {
-            await employeesAPI.addLicense(editingEmployee.id, { license_id: parseInt(lid, 10), expiry_date: licenseExpiry[lid] || null });
-          }
-        }
-        // Updates
-        for (const lid of currentIds) {
-          if (initialIds.has(lid)) {
-            const before = initialMap[lid] || null;
-            const now = licenseExpiry[lid] || null;
-            if (before !== now) {
-              await employeesAPI.updateLicense(editingEmployee.id, parseInt(lid, 10), { expiry_date: now });
-            }
-          }
-        }
-        // Removes
-        for (const lid of initialIds) {
-          if (!currentIds.has(lid)) {
-            await employeesAPI.removeLicense(editingEmployee.id, parseInt(lid, 10));
-          }
-        }
       } else {
-        const createData = {
-          google_id: `manual_${Date.now()}`,
-          email: formData.email,
-          name: formData.name,
-          surname: formData.surname,
-          employee_id: formData.employee_id,
-          contact_no: formData.contact_no,
-          ...(formData.alt_contact_name ? { alt_contact_name: formData.alt_contact_name } : {}),
-          ...(formData.alt_contact_no ? { alt_contact_no: formData.alt_contact_no } : {}),
-          ...(formData.designation_id ? { designation_id: parseInt(formData.designation_id, 10) } : {}),
-          ...(formData.role_id ? { role_id: parseInt(formData.role_id, 10) } : {}),
-          ...(formData.area_of_responsibility_id ? { area_of_responsibility_id: parseInt(formData.area_of_responsibility_id, 10) } : {}),
-          rate_type: formData.rate_type,
-          rate_value: formData.rate_value,
-        };
-        const res = await employeesAPI.create(createData);
+        const res = await employeesAPI.create({ ...data, google_id: `manual_${Date.now()}` });
         const newId = res?.data?.employee?.id;
         if (newId) {
-          // Assign skills
           for (const sid of selectedSkills) {
             await employeesAPI.addSkill(newId, { skill_id: parseInt(sid, 10) });
-          }
-          // Assign licenses
-          for (const lid of selectedLicenses) {
-            await employeesAPI.addLicense(newId, { license_id: parseInt(lid, 10), expiry_date: licenseExpiry[lid] || null });
           }
         }
       }
       
       setIsDialogOpen(false);
       setEditingEmployee(null);
-      setFormData({
-        name: '',
-        surname: '',
-        employee_id: '',
-        contact_no: '',
-        alt_contact_name: '',
-        alt_contact_no: '',
-        email: '',
-        designation_id: '',
-        role_id: '',
-        area_of_responsibility_id: '',
-        rate_type: '',
-        rate_value: ''
-      });
-      setSelectedSkills([]);
-      setInitialSelectedSkills([]);
-      setSelectedLicenses([]);
-      setLicenseExpiry({});
-      setInitialLicensesMap({});
       fetchData();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to save employee');
@@ -241,24 +162,9 @@ export function Employees() {
       rate_type: employee.rate_type || '',
       rate_value: employee.rate_value || ''
     });
-    // Skills selection
     const currentSkills = (employee.skills || []).map(s => s.id.toString());
     setSelectedSkills(currentSkills);
     setInitialSelectedSkills(currentSkills);
-    // Licenses selection with expiry
-    const detailed = employee.licenses_detailed || [];
-    const sel = detailed.map(d => d.license_id.toString());
-    setSelectedLicenses(sel);
-    const exp = {};
-    for (const d of detailed) {
-      exp[d.license_id] = d.expiry_date || '';
-    }
-    setLicenseExpiry(exp);
-    const initMap = {};
-    for (const d of detailed) {
-      initMap[d.license_id] = d.expiry_date || '';
-    }
-    setInitialLicensesMap(initMap);
     setIsDialogOpen(true);
   };
 
@@ -277,23 +183,18 @@ export function Employees() {
     const matchesSearch = 
       employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.surname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.employee_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (employee.employee_id && employee.employee_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
       employee.email.toLowerCase().includes(searchTerm.toLowerCase());
     
-  const matchesRole = selectedRole === 'all' || employee.role_id.toString() === selectedRole;
-  const matchesArea = selectedArea === 'all' || (employee.area_of_responsibility_id?.toString() === selectedArea);
+    const matchesRole = selectedRole === 'all' || employee.role_id.toString() === selectedRole;
+    const matchesArea = selectedArea === 'all' || (employee.area_of_responsibility_id?.toString() === selectedArea);
     
     return matchesSearch && matchesRole && matchesArea;
   });
 
-  const getRoleName = (roleId) => {
-    const role = roles.find(r => r.id === roleId);
-    return role ? role.name : 'Unknown';
-  };
-
-  const getArea = (areaId) => {
-    return areas.find(a => a.id === areaId);
-  };
+  const getRoleName = (roleId) => roles.find(r => r.id === roleId)?.name || 'Unknown';
+  const getAreaName = (areaId) => areas.find(a => a.id === areaId)?.name || 'N/A';
+  const getDesignationName = (designationId) => designations.find(d => d.designation_id === designationId)?.designation_name || '-';
 
   if (loading) {
     return (
@@ -305,137 +206,55 @@ export function Employees() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Employees</h1>
           <p className="text-gray-600 mt-1">Manage employee information and assignments</p>
         </div>
         
-  {isAdmin() && (
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        {isAdmin() && (
+          <Dialog open={isDialogOpen} onOpenChange={(isOpen) => {
+            if (!isOpen) {
+              setEditingEmployee(null);
+              setFormData({ name: '', surname: '', employee_id: '', contact_no: '', email: '', designation_id: '', role_id: '', area_of_responsibility_id: '', rate_type: '', rate_value: '' });
+              setSelectedSkills([]);
+            }
+            setIsDialogOpen(isOpen);
+          }}>
             <DialogTrigger asChild>
-              <Button onClick={() => {
-                setEditingEmployee(null);
-                setFormData({
-                  name: '',
-                  surname: '',
-                  employee_id: '',
-                  contact_no: '',
-                  email: '',
-                  designation_id: '',
-                  role_id: '',
-                  area_of_responsibility_id: '',
-                  rate_type: '',
-                  rate_value: ''
-                });
-                setSelectedSkills([]);
-                setInitialSelectedSkills([]);
-                setSelectedLicenses([]);
-                setLicenseExpiry({});
-                setInitialLicensesMap({});
-              }}>
+              <Button>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Employee
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-2xl">
               <DialogHeader>
-                <DialogTitle>
-                  {editingEmployee ? 'Edit Employee' : 'Add New Employee'}
-                </DialogTitle>
+                <DialogTitle>{editingEmployee ? 'Edit Employee' : 'Add New Employee'}</DialogTitle>
                 <DialogDescription>
                   {editingEmployee ? 'Update employee information.' : 'Add a new employee to the system.'}
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4 p-2 max-h-[80vh] overflow-y-auto">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="name">First Name</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="surname">Last Name</Label>
-                    <Input
-                      id="surname"
-                      value={formData.surname}
-                      onChange={(e) => setFormData({...formData, surname: e.target.value})}
-                      required
-                    />
-                  </div>
+                  <div><Label htmlFor="name">First Name</Label><Input id="name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required /></div>
+                  <div><Label htmlFor="surname">Last Name</Label><Input id="surname" value={formData.surname} onChange={(e) => setFormData({...formData, surname: e.target.value})} required /></div>
                 </div>
-                
-                <div>
-                  <Label htmlFor="employee_id">Employee ID</Label>
-                  <Input
-                    id="employee_id"
-                    value={formData.employee_id}
-                    onChange={(e) => setFormData({...formData, employee_id: e.target.value})}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="contact_no">Contact Number</Label>
-                  <Input
-                    id="contact_no"
-                    value={formData.contact_no}
-                    onChange={(e) => setFormData({...formData, contact_no: e.target.value})}
-                    required
-                  />
-                </div>
-
+                <div><Label htmlFor="employee_id">Employee ID</Label><Input id="employee_id" value={formData.employee_id} onChange={(e) => setFormData({...formData, employee_id: e.target.value})} required /></div>
+                <div><Label htmlFor="email">Email</Label><Input id="email" type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required /></div>
+                <div><Label htmlFor="contact_no">Contact Number</Label><Input id="contact_no" value={formData.contact_no} onChange={(e) => setFormData({...formData, contact_no: e.target.value})} required /></div>
                 <div>
                   <Label htmlFor="designation">Designation</Label>
                   <Select value={formData.designation_id} onValueChange={(value) => setFormData({...formData, designation_id: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a designation" />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select a designation" /></SelectTrigger>
                     <SelectContent>
-                      {designations.map((designation) => (
-                        <SelectItem key={designation.designation_id} value={designation.designation_id.toString()}>
-                          {designation.designation_name}
-                        </SelectItem>
-                      ))}
+                      {designations.map((d) => (<SelectItem key={d.designation_id} value={d.designation_id.toString()}>{d.designation_name}</SelectItem>))}
                     </SelectContent>
                   </Select>
                 </div>
-                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="alt_contact_name">Alternative Contact Name</Label>
-                    <Input
-                      id="alt_contact_name"
-                      value={formData.alt_contact_name || ''}
-                      onChange={(e) => setFormData({...formData, alt_contact_name: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="alt_contact_no">Alternative Contact</Label>
-                    <Input
-                      id="alt_contact_no"
-                      value={formData.alt_contact_no || ''}
-                      onChange={(e) => setFormData({...formData, alt_contact_no: e.target.value})}
-                    />
-                  </div>
+                  <div><Label htmlFor="alt_contact_name">Alt. Contact Name</Label><Input id="alt_contact_name" value={formData.alt_contact_name || ''} onChange={(e) => setFormData({...formData, alt_contact_name: e.target.value})} /></div>
+                  <div><Label htmlFor="alt_contact_no">Alt. Contact Number</Label><Input id="alt_contact_no" value={formData.alt_contact_no || ''} onChange={(e) => setFormData({...formData, alt_contact_no: e.target.value})} /></div>
                 </div>
-
                 <Accordion type="multiple" className="w-full">
                   <AccordionItem value="skills">
                     <AccordionTrigger>Skills</AccordionTrigger>
@@ -443,55 +262,13 @@ export function Employees() {
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
                         {skills.map((skill) => (
                           <label key={skill.id} className="flex items-center space-x-2 text-sm">
-                            <Checkbox
-                              checked={selectedSkills.includes(skill.id.toString())}
-                              onCheckedChange={(checked) => {
-                                const id = skill.id.toString();
-                                setSelectedSkills((prev) => checked ? [...prev, id] : prev.filter(s => s !== id));
-                              }}
-                            />
+                            <Checkbox checked={selectedSkills.includes(skill.id.toString())} onCheckedChange={(checked) => setSelectedSkills(prev => checked ? [...prev, skill.id.toString()] : prev.filter(s => s !== skill.id.toString()))} />
                             <span>{skill.name}</span>
                           </label>
                         ))}
                       </div>
                     </AccordionContent>
                   </AccordionItem>
-                  {/* <AccordionItem value="licenses">
-                    <AccordionTrigger>Licenses</AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-2 mt-2">
-                        {licenseOptions.map((lic) => {
-                          const id = lic.id.toString();
-                          const selected = selectedLicenses.includes(id);
-                          return (
-                            <div key={lic.id} className="flex flex-col md:flex-row md:items-center md:space-x-3 p-2 border rounded">
-                              <label className="flex items-center space-x-2 text-sm">
-                                <Checkbox
-                                  checked={selected}
-                                  onCheckedChange={(checked) => {
-                                    setSelectedLicenses((prev) => checked ? [...prev, id] : prev.filter(x => x !== id));
-                                  }}
-                                />
-                                <span>{lic.name}</span>
-                              </label>
-                              {selected && (
-                                <div className="mt-2 md:mt-0 md:ml-auto flex items-center space-x-2">
-                                  <Label htmlFor={`exp_${id}`} className="text-xs">Expiry</Label>
-                                  <Input
-                                    id={`exp_${id}`}
-                                    type="date"
-                                    value={licenseExpiry[id] || ''}
-                                    onChange={(e) => setLicenseExpiry(prev => ({...prev, [id]: e.target.value}))}
-                                    className="h-8"
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem> */}
                   <AccordionItem value="rates">
                     <AccordionTrigger>Rates</AccordionTrigger>
                     <AccordionContent>
@@ -499,9 +276,7 @@ export function Employees() {
                         <div>
                           <Label htmlFor="rate_type">Rate Type</Label>
                           <Select value={formData.rate_type} onValueChange={(value) => setFormData({...formData, rate_type: value})}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a rate type" />
-                            </SelectTrigger>
+                            <SelectTrigger><SelectValue placeholder="Select a rate type" /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="Monthly">Monthly</SelectItem>
                               <SelectItem value="Weekly">Weekly</SelectItem>
@@ -511,59 +286,32 @@ export function Employees() {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div>
-                          <Label htmlFor="rate_value">Rate Value (ZAR)</Label>
-                          <Input
-                            id="rate_value"
-                            type="number"
-                            value={formData.rate_value}
-                            onChange={(e) => setFormData({...formData, rate_value: e.target.value})}
-                          />
-                        </div>
+                        <div><Label htmlFor="rate_value">Rate Value (ZAR)</Label><Input id="rate_value" type="number" value={formData.rate_value} onChange={(e) => setFormData({...formData, rate_value: e.target.value})} /></div>
                       </div>
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
-                
                 <div>
                   <Label htmlFor="role">Role</Label>
-                  <Select value={formData.role_id} onValueChange={(value) => setFormData({...formData, role_id: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a role" />
-                    </SelectTrigger>
+                  <Select value={formData.role_id} onValueChange={(value) => setFormData({...formData, role_id: value})} required>
+                    <SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger>
                     <SelectContent>
-                      {roles.map((role) => (
-                        <SelectItem key={role.id} value={role.id.toString()}>
-                          {role.name}
-                        </SelectItem>
-                      ))}
+                      {roles.map((role) => (<SelectItem key={role.id} value={role.id.toString()}>{role.name}</SelectItem>))}
                     </SelectContent>
                   </Select>
                 </div>
-                
                 <div>
                   <Label htmlFor="area">Area of Responsibility</Label>
                   <Select value={formData.area_of_responsibility_id} onValueChange={(value) => setFormData({...formData, area_of_responsibility_id: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select an area" />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select an area" /></SelectTrigger>
                     <SelectContent>
-                      {areas.map((area) => (
-                        <SelectItem key={area.id} value={area.id.toString()}>
-                          {area.name}
-                        </SelectItem>
-                      ))}
+                      {areas.map((area) => (<SelectItem key={area.id} value={area.id.toString()}>{area.name}</SelectItem>))}
                     </SelectContent>
                   </Select>
                 </div>
-                
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit">
-                    {editingEmployee ? 'Update' : 'Create'}
-                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                  <Button type="submit">{editingEmployee ? 'Update' : 'Create'}</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -571,68 +319,39 @@ export function Employees() {
         )}
       </div>
 
-      {/* Filters */}
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search employees..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+                <Input placeholder="Search employees..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
               </div>
             </div>
-            
-      <Select value={selectedRole} onValueChange={setSelectedRole}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Filter by role" />
-              </SelectTrigger>
+            <Select value={selectedRole} onValueChange={setSelectedRole}>
+              <SelectTrigger className="w-full md:w-48"><SelectValue placeholder="Filter by role" /></SelectTrigger>
               <SelectContent>
-        <SelectItem value="all">All Roles</SelectItem>
-                {roles.map((role) => (
-                  <SelectItem key={role.id} value={role.id.toString()}>
-                    {role.name}
-                  </SelectItem>
-                ))}
+                <SelectItem value="all">All Roles</SelectItem>
+                {roles.map((role) => (<SelectItem key={role.id} value={role.id.toString()}>{role.name}</SelectItem>))}
               </SelectContent>
             </Select>
-            
-      <Select value={selectedArea} onValueChange={setSelectedArea}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Filter by area" />
-              </SelectTrigger>
+            <Select value={selectedArea} onValueChange={setSelectedArea}>
+              <SelectTrigger className="w-full md:w-48"><SelectValue placeholder="Filter by area" /></SelectTrigger>
               <SelectContent>
-        <SelectItem value="all">All Areas</SelectItem>
-                {areas.map((area) => (
-                  <SelectItem key={area.id} value={area.id.toString()}>
-                    {area.name}
-                  </SelectItem>
-                ))}
+                <SelectItem value="all">All Areas</SelectItem>
+                {areas.map((area) => (<SelectItem key={area.id} value={area.id.toString()}>{area.name}</SelectItem>))}
               </SelectContent>
             </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Error Alert */}
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      {error && (<Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertDescription>{error}</AlertDescription></Alert>)}
 
-      {/* Employees Table */}
       <Card>
         <CardHeader>
           <CardTitle>Employee List</CardTitle>
-          <CardDescription>
-            {filteredEmployees.length} of {employees.length} employees
-          </CardDescription>
+          <CardDescription>{filteredEmployees.length} of {employees.length} employees</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -642,13 +361,10 @@ export function Employees() {
                   <TableHead>Employee</TableHead>
                   <TableHead>ID</TableHead>
                   <TableHead>Contact</TableHead>
-                  <TableHead>Alt Contact Name</TableHead>
-                  <TableHead>Alt Contact</TableHead>
                   <TableHead>Designation</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Area</TableHead>
                   <TableHead>Skills</TableHead>
-                  {/* <TableHead>Licenses</TableHead> */}
                   {isAdmin() && <TableHead>Actions</TableHead>}
                 </TableRow>
               </TableHeader>
@@ -658,108 +374,35 @@ export function Employees() {
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                          <span className="text-white text-sm font-medium">
-                            {employee.name.charAt(0)}{employee.surname.charAt(0)}
-                          </span>
+                          <span className="text-white text-sm font-medium">{employee.name.charAt(0)}{employee.surname.charAt(0)}</span>
                         </div>
                         <div>
                           <div className="font-medium">{employee.name} {employee.surname}</div>
-                          <div className="text-sm text-gray-500 flex items-center">
-                            <Mail className="h-3 w-3 mr-1" />
-                            {employee.email}
-                          </div>
+                          <div className="text-sm text-gray-500 flex items-center"><Mail className="h-3 w-3 mr-1" />{employee.email}</div>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{employee.employee_id}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm flex items-center">
-                        <Phone className="h-3 w-3 mr-1" />
-                        {employee.contact_no}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">{employee.alt_contact_name || '-'}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">{employee.alt_contact_no || '-'}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">{employee.designation || '-'}</div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{getRoleName(employee.role_id)}</Badge>
-                    </TableCell>
+                    <TableCell><Badge variant="outline">{employee.employee_id}</Badge></TableCell>
+                    <TableCell><div className="text-sm flex items-center"><Phone className="h-3 w-3 mr-1" />{employee.contact_no}</div></TableCell>
+                    <TableCell><div className="text-sm">{getDesignationName(employee.designation_id)}</div></TableCell>
+                    <TableCell><Badge variant="secondary">{getRoleName(employee.role_id)}</Badge></TableCell>
                     <TableCell>
                       <div className="text-sm flex items-center">
                         <MapPin className="h-3 w-3 mr-1" />
-                    {(() => {
-                      const area = getArea(employee.area_of_responsibility_id);
-                      if (!area) return 'N/A';
-                      return (
-                        <Badge
-                          style={{
-                            backgroundColor: area.color,
-                            color: 'white', // A simple choice, could be improved with a color contrast function
-                          }}
-                        >
-                          {area.name}
-                        </Badge>
-                      );
-                    })()}
+                        {getAreaName(employee.area_of_responsibility_id)}
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {employee.skills?.slice(0, 2).map((skill) => (
-                          <Badge key={skill.id} variant="outline" className="text-xs">
-                            {skill.name}
-                          </Badge>
-                        ))}
-                        {employee.skills?.length > 2 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{employee.skills.length - 2}
-                          </Badge>
-                        )}
+                        {employee.skills?.slice(0, 2).map((skill) => (<Badge key={skill.id} variant="outline" className="text-xs">{skill.name}</Badge>))}
+                        {employee.skills?.length > 2 && (<Badge variant="outline" className="text-xs">+{employee.skills.length - 2}</Badge>)}
                       </div>
                     </TableCell>
-                    {/* <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {(employee.licenses_detailed || []).slice(0, 5).map((ld) => {
-                          const soon = ld.expiring_soon;
-                          const expired = ld.expired;
-                          const cls = expired ? 'bg-red-100 text-red-700 border-red-300' : (soon ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : '');
-                          return (
-                            <Badge key={ld.license_id} variant="outline" className={`text-xs ${cls}`}>
-                              {(ld.license?.name || ld.name || 'License')}{ld.expiry_date ? ` (${ld.expiry_date})` : ''}
-                            </Badge>
-                          );
-                        })}
-                        {employee.licenses_detailed && employee.licenses_detailed.length > 5 && (
-                          <Badge variant="outline" className="text-xs">+{employee.licenses_detailed.length - 5}</Badge>
-                        )}
-                      </div>
-                    </TableCell> */}
                     {isAdmin() && (
                       <TableCell>
                         <div className="flex space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(employee)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(employee.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleEdit(employee)}><Edit className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleDelete(employee.id)} className="text-red-600 hover:text-red-700"><Trash2 className="h-4 w-4" /></Button>
                         </div>
                       </TableCell>
                     )}
@@ -773,11 +416,7 @@ export function Employees() {
             <div className="text-center py-8">
               <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No employees found</h3>
-              <p className="text-gray-500">
-                {searchTerm || selectedRole || selectedArea
-                  ? 'Try adjusting your search or filter criteria.'
-                  : 'Get started by adding your first employee.'}
-              </p>
+              <p className="text-gray-500">{searchTerm || selectedRole !== 'all' || selectedArea !== 'all' ? 'Try adjusting your search or filter criteria.' : 'Get started by adding your first employee.'}</p>
             </div>
           )}
         </CardContent>

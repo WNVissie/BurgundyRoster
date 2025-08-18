@@ -24,7 +24,6 @@ export function Reports() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // State for acceptance report
   const [acceptanceReportData, setAcceptanceReportData] = useState([]);
   const [acceptanceReportLoading, setAcceptanceReportLoading] = useState(false);
   const [dateRange, setDateRange] = useState({
@@ -32,21 +31,18 @@ export function Reports() {
     to: new Date(new Date().setDate(new Date().getDate() + 7)),
   });
 
-  // Data for filters
   const [skills, setSkills] = useState([]);
   const [licenses, setLicenses] = useState([]);
   const [roles, setRoles] = useState([]);
   const [areas, setAreas] = useState([]);
   const [designations, setDesignations] = useState([]);
 
-  // Selected filter values
   const [selectedSkills, setSelectedSkills] = useState([]);
   const [selectedLicenses, setSelectedLicenses] = useState([]);
   const [selectedRoles, setSelectedRoles] = useState([]);
   const [selectedAreas, setSelectedAreas] = useState([]);
   const [selectedDesignations, setSelectedDesignations] = useState([]);
 
-  // State for history report
   const [allEmployees, setAllEmployees] = useState([]);
   const [selectedEmployeeForHistory, setSelectedEmployeeForHistory] = useState('');
   const [historyReport, setHistoryReport] = useState(null);
@@ -54,7 +50,6 @@ export function Reports() {
 
 
   useEffect(() => {
-    // Fetch data for populating filter dropdowns
     const fetchFilterData = async () => {
       try {
         const [skillsRes, licensesRes, rolesRes, areasRes, designationsRes, employeesRes] = await Promise.all([
@@ -66,10 +61,10 @@ export function Reports() {
           employeesAPI.getAll(),
         ]);
         setSkills(skillsRes.data.skills || []);
-        setLicenses((licensesRes.data.licenses || []).map(l => ({ id: l.id, name: l.name })));
+        setLicenses((licensesRes.data || []).map(l => ({ id: l.id, name: l.name })));
         setRoles(rolesRes.data.roles || []);
         setAreas(areasRes.data.areas || []);
-        setDesignations((designationsRes.data.designations || []).map(d => ({ id: d.designation_id, name: d.designation_name })));
+        setDesignations((designationsRes.data || []).map(d => ({ id: d.designation_id, name: d.designation_name })));
         setAllEmployees(employeesRes.data.employees || []);
       } catch (err) {
         setError('Failed to load filter options.');
@@ -220,7 +215,7 @@ export function Reports() {
               {acceptanceReportLoading ? 'Generating...' : 'Generate Report'}
             </Button>
           </div>
-          {acceptanceReportData.length > 0 && (
+          {acceptanceReportData && acceptanceReportData.length > 0 && (
             <Table>
               <TableHeader>
                 <TableRow>

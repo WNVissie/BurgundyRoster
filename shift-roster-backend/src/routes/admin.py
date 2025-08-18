@@ -8,7 +8,7 @@ import json
 admin_bp = Blueprint('admin', __name__)
 
 # Roles Management
-@admin_bp.route('/roles', methods=['GET'])
+@admin_bp.route('/roles/', methods=['GET'])
 @jwt_required()
 def get_roles():
     """Get all roles"""
@@ -31,7 +31,6 @@ def create_role():
         if 'name' not in data:
             return jsonify({'error': 'Role name is required'}), 400
         
-        # Check if role already exists
         existing_role = Role.query.filter_by(name=data['name']).first()
         if existing_role:
             return jsonify({'error': 'Role with this name already exists'}), 400
@@ -65,7 +64,6 @@ def update_role(role_id):
         data = request.get_json()
         
         if 'name' in data:
-            # Check if another role has this name
             existing_role = Role.query.filter(Role.name == data['name'], Role.id != role_id).first()
             if existing_role:
                 return jsonify({'error': 'Role with this name already exists'}), 400
@@ -94,7 +92,6 @@ def delete_role(role_id):
         if not role:
             return jsonify({'error': 'Role not found'}), 404
         
-        # Check if role is in use
         if role.users:
             return jsonify({'error': 'Cannot delete role that is assigned to users'}), 400
         
@@ -108,7 +105,7 @@ def delete_role(role_id):
         return jsonify({'error': str(e)}), 500
 
 # Areas of Responsibility Management
-@admin_bp.route('/areas', methods=['GET'])
+@admin_bp.route('/areas/', methods=['GET'])
 @jwt_required()
 def get_areas():
     """Get all areas of responsibility"""
@@ -131,7 +128,6 @@ def create_area():
         if 'name' not in data:
             return jsonify({'error': 'Area name is required'}), 400
         
-        # Check if area already exists
         existing_area = AreaOfResponsibility.query.filter_by(name=data['name']).first()
         if existing_area:
             return jsonify({'error': 'Area with this name already exists'}), 400
@@ -166,7 +162,6 @@ def update_area(area_id):
         data = request.get_json()
         
         if 'name' in data:
-            # Check if another area has this name
             existing_area = AreaOfResponsibility.query.filter(
                 AreaOfResponsibility.name == data['name'], 
                 AreaOfResponsibility.id != area_id
@@ -201,7 +196,6 @@ def delete_area(area_id):
         if not area:
             return jsonify({'error': 'Area not found'}), 404
         
-        # Check if area is in use
         if area.users:
             return jsonify({'error': 'Cannot delete area that is assigned to users'}), 400
         
@@ -215,7 +209,7 @@ def delete_area(area_id):
         return jsonify({'error': str(e)}), 500
 
 # Skills Management
-@admin_bp.route('/skills', methods=['GET'])
+@admin_bp.route('/skills/', methods=['GET'])
 @jwt_required()
 def get_skills():
     """Get all skills"""
@@ -238,7 +232,6 @@ def create_skill():
         if 'name' not in data:
             return jsonify({'error': 'Skill name is required'}), 400
         
-        # Check if skill already exists
         existing_skill = Skill.query.filter_by(name=data['name']).first()
         if existing_skill:
             return jsonify({'error': 'Skill with this name already exists'}), 400
@@ -272,7 +265,6 @@ def update_skill(skill_id):
         data = request.get_json()
         
         if 'name' in data:
-            # Check if another skill has this name
             existing_skill = Skill.query.filter(
                 Skill.name == data['name'], 
                 Skill.id != skill_id
@@ -304,7 +296,6 @@ def delete_skill(skill_id):
         if not skill:
             return jsonify({'error': 'Skill not found'}), 404
         
-        # Check if skill is in use
         if skill.employees:
             return jsonify({'error': 'Cannot delete skill that is assigned to employees'}), 400
         
@@ -318,7 +309,7 @@ def delete_skill(skill_id):
         return jsonify({'error': str(e)}), 500
 
 # Shifts Management
-@admin_bp.route('/shifts', methods=['GET'])
+@admin_bp.route('/shifts/', methods=['GET'])
 @jwt_required()
 def get_shifts():
     """Get all shift types"""
@@ -343,12 +334,10 @@ def create_shift():
             if field not in data:
                 return jsonify({'error': f'{field} is required'}), 400
         
-        # Check if shift already exists
         existing_shift = Shift.query.filter_by(name=data['name']).first()
         if existing_shift:
             return jsonify({'error': 'Shift with this name already exists'}), 400
         
-        # Parse time strings
         try:
             start_time = time.fromisoformat(data['start_time'])
             end_time = time.fromisoformat(data['end_time'])
@@ -388,7 +377,6 @@ def update_shift(shift_id):
         data = request.get_json()
         
         if 'name' in data:
-            # Check if another shift has this name
             existing_shift = Shift.query.filter(
                 Shift.name == data['name'], 
                 Shift.id != shift_id
@@ -438,16 +426,14 @@ def delete_shift(shift_id):
         if not shift:
             return jsonify({'error': 'Shift not found'}), 404
         
-        # Check if shift is in use
         if shift.shift_rosters:
             return jsonify({'error': 'Cannot delete shift that is used in rosters'}), 400
         
         db.session.delete(shift)
         db.session.commit()
         
-        return jsonify({'message': 'Shift deleted successfully'}), 200
+        return jsonify({'message': 'Skill deleted successfully'}), 200
         
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
-
