@@ -3,6 +3,7 @@ import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useAuth } from '../../contexts/AuthContext';
 import { rosterAPI, employeesAPI, shiftsAPI } from '../../lib/api';
+import api from '../../lib/api';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -182,8 +183,11 @@ function CalendarDropZone({ day, children, onDrop, isToday }) {
 }
 
 // Shift Selection Modal
-function ShiftSelectionModal({ isOpen, onClose, onSelect, shifts, employee }) {
-  if (!isOpen) return null;
+function ShiftSelectionModal({ isOpen, onClose, onSelect, shifts, employee, areas }) {
+  const [swapArea, setSwapArea] = useState(false);
+  const [selectedArea, setSelectedArea] = useState(employee ? employee.defaultAreaId : "");
+
+  if (!isOpen || !employee) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
@@ -191,24 +195,47 @@ function ShiftSelectionModal({ isOpen, onClose, onSelect, shifts, employee }) {
         <h3 className="text-lg font-semibold mb-4">
           Select Shift for {employee?.name} {employee?.surname}
         </h3>
+        <div className="mb-4">
+          <label>
+            <input
+              type="checkbox"
+              checked={swapArea}
+              onChange={e => setSwapArea(e.target.checked)}
+            />
+            Swap Area
+          </label>
+          {swapArea && (
+            <select
+              value={selectedArea}
+              onChange={e => setSelectedArea(e.target.value)}
+              className="ml-2 border rounded p-1"
+            >
+              {areas.map(area => (
+                <option key={area.id} value={area.id}>
+                  {area.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
         <div className="space-y-2 max-h-60 overflow-y-auto">
-      {shifts.map((shift) => (
+          {shifts.map((shift) => (
             <button
               key={shift.id}
-              onClick={() => onSelect(shift)}
+              onClick={() => onSelect(shift, swapArea ? selectedArea : employee.defaultAreaId)}
               className="w-full text-left p-3 border rounded-lg hover:bg-gray-50 transition-colors"
             >
-              <div className="font-medium">{shift.name}</div>
-              <div className="text-sm text-gray-500">
-        {shift.start_time} - {shift.end_time} ({shift.hours}h)
-              </div>
+              {shift.name} ({shift.start_time} - {shift.end_time})
             </button>
           ))}
         </div>
-        <div className="mt-4 flex justify-end space-x-2">
-          <Button variant="outline" onClick={onClose}>
+        <div className="flex justify-end mt-4">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
+          >
             Cancel
-          </Button>
+          </button>
         </div>
       </div>
     </div>
@@ -278,14 +305,15 @@ export function DragDropRoster() {
     }
   };
 
-  const handleShiftSelect = async (shift) => {
+  const handleShiftSelect = async (shift, areaId) => {
     try {
       const rosterData = {
         employee_id: selectedEmployee.id,
         shift_id: shift.id,
         date: format(selectedDate, 'yyyy-MM-dd'),
         status: 'pending',
-        hours: shift.hours
+        hours: shift.hours,
+        area_id: areaId
       };
       
       await rosterAPI.create(rosterData);
@@ -496,6 +524,7 @@ export function DragDropRoster() {
           onSelect={handleShiftSelect}
           shifts={shifts}
           employee={selectedEmployee}
+          areas={employees.find(emp => emp.id === selectedEmployee?.id)?.areas || []}
         />
       </div>
     </DndProvider>

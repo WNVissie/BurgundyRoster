@@ -664,8 +664,8 @@ function StaticRosterView() {
           )}
 
           <h2 className="text-xl font-semibold mt-8 mb-4">My Leave</h2>
-          {leave.length > 0 ? (
-            leave.map(l => (
+          {leave.filter(l => l.employee_id === user.id).length > 0 ? (
+            leave.filter(l => l.employee_id === user.id).map(l => (
               <div key={l.id} className="p-2 mb-2 rounded border bg-yellow-50">
                 <div className="font-medium">{l.type}</div>
                 <div className="text-xs text-gray-600">{l.start_date} to {l.end_date}</div>
@@ -677,8 +677,8 @@ function StaticRosterView() {
           )}
 
           <h2 className="text-xl font-semibold mt-8 mb-4">My Timesheets</h2>
-          {timesheets.length > 0 ? (
-            timesheets.map(t => (
+          {timesheets.filter(t => t.employee_id === user.id).length > 0 ? (
+            timesheets.filter(t => t.employee_id === user.id).map(t => (
               <div key={t.id} className="p-2 mb-2 rounded border bg-blue-50">
                 <div className="font-medium">Date: {t.date}</div>
                 <div className="text-xs text-gray-600">Hours: {t.hours}</div>
