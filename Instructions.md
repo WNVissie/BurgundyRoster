@@ -63,3 +63,8 @@ git branch
 
 q for quit
 
+to check state of version history:  git log --all
+
+to view previous versions:  git checkout # copy the # of the commit from git 
+
+to restore
