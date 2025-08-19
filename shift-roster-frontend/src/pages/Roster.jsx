@@ -146,14 +146,14 @@ function StaticRosterView() {
   };
 
   const getRosterForDate = (date) => {
-    if (isEmployee()) {
-      // Only show roster entries for the logged-in employee
-      return roster.filter(
-        r => isSameDay(parseISO(r.date), date) && r.employee_id === user.id
-      );
+    if (isAdmin() || isManager()) {
+      // Show all shifts for admins/managers
+      return roster.filter(r => isSameDay(parseISO(r.date), date));
     }
-    // Admins/managers see all
-    return roster.filter(r => isSameDay(parseISO(r.date), date));
+    // Employees see only their own shifts
+    return roster.filter(
+      r => isSameDay(parseISO(r.date), date) && r.employee_id === user.id
+    );
   };
 
   const getEmployee = (employeeId) => {
