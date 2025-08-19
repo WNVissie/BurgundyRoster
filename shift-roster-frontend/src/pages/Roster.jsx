@@ -116,13 +116,13 @@ function StaticRosterView() {
   const handleCreateRoster = async () => {
     try {
       const selShift = shifts.find(s => s.id === parseInt(selectedShift));
-      const rosterData = {
+            const rosterData = {
         employee_id: parseInt(selectedEmployee),
         shift_id: parseInt(selectedShift),
         date: format(selectedRosterDate, 'yyyy-MM-dd'),
         status: 'pending',
         hours: selShift?.hours,
-        area_of_responsibility_id: selectedArea ? parseInt(selectedArea) : null
+        area_of_responsibility_id: selectedArea === "default" ? null : parseInt(selectedArea)
       };
       
       await rosterAPI.create(rosterData);
@@ -297,7 +297,7 @@ function StaticRosterView() {
                     <SelectValue placeholder="Default to employee's area" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Default Area</SelectItem>
+                    <SelectItem value="default">Default Area</SelectItem>
                     {areas.map((area) => (
                       <SelectItem key={area.id} value={area.id.toString()}>
                         {area.name}
