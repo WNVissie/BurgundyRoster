@@ -53,6 +53,8 @@ function StaticRosterView() {
   const [employees, setEmployees] = useState([]);
   const [shifts, setShifts] = useState([]);
   const [areas, setAreas] = useState([]);
+  const [leave, setLeave] = useState([]);
+  const [timesheets, setTimesheets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   // const [selectedDate, setSelectedDate] = useState(new Date());
@@ -81,27 +83,31 @@ function StaticRosterView() {
       setLoading(true);
       const startDate = startOfWeek(currentWeek);
       const endDate = endOfWeek(currentWeek);
-      
-      const [rosterRes, employeesRes, shiftsRes, areasRes] = await Promise.all([
+
+      const [rosterRes, employeesRes, shiftsRes, areasRes, leaveRes, timesheetsRes] = await Promise.all([
         rosterAPI.getAll({
           start_date: format(startDate, 'yyyy-MM-dd'),
           end_date: format(endDate, 'yyyy-MM-dd')
         }),
         employeesAPI.getAll(),
         shiftsAPI.getAll(),
-        areasAPI.getAll()
+        areasAPI.getAll(),
+        api.get(`/leave?employee_id=${user.id}`),
+        api.get(`/timesheets?employee_id=${user.id}`)
       ]);
       
       setRoster(rosterRes.data.roster || []);
       setEmployees(employeesRes.data.employees || []);
       setShifts(shiftsRes.data.shifts || []);
       setAreas(areasRes.data.areas || []);
+      setLeave(leaveRes.data.leave || []);
+      setTimesheets(timesheetsRes.data.timesheets || []);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to fetch roster data');
     } finally {
       setLoading(false);
     }
-  }, [currentWeek]);
+  }, [currentWeek, user.id]);
 
   React.useEffect(() => {
     fetchData();
@@ -655,6 +661,32 @@ function StaticRosterView() {
               <CalendarIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p className="text-xs">No shifts scheduled</p>
             </div>
+          )}
+
+          <h2 className="text-xl font-semibold mt-8 mb-4">My Leave</h2>
+          {leave.length > 0 ? (
+            leave.map(l => (
+              <div key={l.id} className="p-2 mb-2 rounded border bg-yellow-50">
+                <div className="font-medium">{l.type}</div>
+                <div className="text-xs text-gray-600">{l.start_date} to {l.end_date}</div>
+                <div className="text-xs">{l.status}</div>
+              </div>
+            ))
+          ) : (
+            <div className="text-gray-400 py-4">No leave records</div>
+          )}
+
+          <h2 className="text-xl font-semibold mt-8 mb-4">My Timesheets</h2>
+          {timesheets.length > 0 ? (
+            timesheets.map(t => (
+              <div key={t.id} className="p-2 mb-2 rounded border bg-blue-50">
+                <div className="font-medium">Date: {t.date}</div>
+                <div className="text-xs text-gray-600">Hours: {t.hours}</div>
+                <div className="text-xs">{t.status}</div>
+              </div>
+            ))
+          ) : (
+            <div className="text-gray-400 py-4">No timesheets</div>
           )}
         </div>
       )}
