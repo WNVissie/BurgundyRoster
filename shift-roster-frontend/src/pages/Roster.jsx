@@ -146,6 +146,13 @@ function StaticRosterView() {
   };
 
   const getRosterForDate = (date) => {
+    if (isEmployee()) {
+      // Only show roster entries for the logged-in employee
+      return roster.filter(
+        r => isSameDay(parseISO(r.date), date) && r.employee_id === user.id
+      );
+    }
+    // Admins/managers see all
     return roster.filter(r => isSameDay(parseISO(r.date), date));
   };
 
@@ -153,9 +160,7 @@ function StaticRosterView() {
     return employees.find(e => e.id === employeeId);
   };
 
-  const getShift = (shiftId) => {
-    return shifts.find(s => s.id === shiftId);
-  };
+  const getShift = (shiftId) => shifts.find(s => String(s.id) === String(shiftId));
 
   // status helpers moved inline using colored badges
 
@@ -607,40 +612,50 @@ function StaticRosterView() {
       {isEmployee() && (
         <div className="mt-6">
           <h2 className="text-xl font-semibold mb-4">My Shifts</h2>
-          
-          {shifts
-            .filter(shift => isEmployee() ? shift.employee_id === user.id : true)
-            .map(shift => (
-              <div key={shift.id} className="flex items-center justify-between p-3 rounded-md border mb-2"
-                style={{
-                  backgroundColor: shift.status === 'accepted' ? '#e8f5e9' : '#f3f4f6'
-                }}
-              >
-                <div>
-                  <div className="text-sm font-medium">
-                    {shift.date} - {shift.employee_name}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {shift.start_time} - {shift.end_time} • {shift.hours}h
-                  </div>
-                </div>
-                
-                <Button
+          {roster
+            .filter(r => r.employee_id === user.id)
+            .map(r => {
+              const shift = getShift(r.shift_id);
+              return (
+                <div key={r.id} className="flex items-center justify-between p-3 rounded-md border mb-2"
                   style={{
-                    backgroundColor: shift.status === 'accepted' ? '#4caf50' : '#e0e0e0',
-                    color: shift.status === 'accepted' ? '#fff' : '#000',
-                    border: 'none'
+                    backgroundColor: r.status === 'accepted' ? '#e8f5e9' : '#f3f4f6'
                   }}
-                  onClick={async () => {
-                    await shiftsAPI.accept(shift.id);
-                    await fetchData();
-                  }}
-                  disabled={shift.status === 'accepted'}
                 >
-                  {shift.status === 'accepted' ? 'Accepted' : 'Accept'}
-                </Button>
-              </div>
-            ))}
+                  <div>
+                    <div className="text-sm font-medium">
+                      {r.date} - {user.name} {user.surname}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {shift?.start_time} - {shift?.end_time} • {r.hours}h
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {shift?.name}
+                    </div>
+                  </div>
+                  <Button
+                    style={{
+                      backgroundColor: r.status === 'accepted' ? '#4caf50' : '#e0e0e0',
+                      color: r.status === 'accepted' ? '#fff' : '#000',
+                      border: 'none'
+                    }}
+                    onClick={async () => {
+                      await rosterAPI.accept(r.id);
+                      await fetchData();
+                    }}
+                    disabled={r.status === 'accepted'}
+                  >
+                    {r.status === 'accepted' ? 'Accepted' : 'Accept'}
+                  </Button>
+                </div>
+              );
+            })}
+          {roster.filter(r => r.employee_id === user.id).length === 0 && (
+            <div className="text-center text-gray-400 py-8">
+              <CalendarIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p className="text-xs">No shifts scheduled</p>
+            </div>
+          )}
         </div>
       )}
     </div>
