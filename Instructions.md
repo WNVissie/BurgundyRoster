@@ -44,6 +44,7 @@ Stage (+) a file:
 It moves to Staged Changes.
 If you edit the file again, you must stage it again to update the staged version.
 Commit:
+git ommit -m xx " (-m is for message)
 
 Only the files in Staged Changes are saved in the commit.
 Unstaged changes remain local and are not committed.
@@ -56,3 +57,9 @@ Summary:
 
 Push after you commit to sync your local commits with GitHub.
 Unstaged changes are always local until you stage, commit, and push.
+
+see which branch you are in:
+git branch
+
+q for quit
+
