@@ -45,4 +45,5 @@ Thumbs.db
 *.tgz
 *.rar
 
-secrets.txt
+Secrets.txt
+Instructions.md 
