@@ -155,6 +155,7 @@ class User(db.Model):
     rate_value = db.Column(db.Numeric(10, 2), name='rate_-value')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    total_no_leave_days_annual = db.Column(db.Numeric)
     
     # Relationships
     skills = db.relationship('Skill', secondary=employee_skills, lazy='subquery',
@@ -203,7 +204,8 @@ class User(db.Model):
             'rate_value': float(self.rate_value) if self.rate_value is not None else None,
             'skills': [skill.to_dict() for skill in self.skills],
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'total_no_leave_days_annual': float(self.total_no_leave_days_annual) if self.total_no_leave_days_annual is not None else None
         }
 
 class Shift(db.Model):
@@ -343,13 +345,17 @@ class LeaveRequest(db.Model):
     leave_type = db.Column(db.String(20), nullable=False)  # paid, unpaid, sick
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
-    days = db.Column(db.Integer, nullable=False)
+    days = db.Column(db.Numeric)  # Change to Numeric if partial days allowed
     reason = db.Column(db.Text)
     status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
     approved_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     approved_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     action_comment = db.Column(db.String(255))  # <-- Add this line
+    no_of_leave_days_remaining = db.Column(db.Numeric)
+    total_no_leave_days_annual = db.Column(db.Numeric)
+    authorised_by = db.Column(db.Integer)
+    authorised_at = db.Column(db.DateTime)
 
     # Relationships
     employee = db.relationship('User', foreign_keys=[employee_id], backref='leave_requests')
@@ -382,7 +388,11 @@ class LeaveRequest(db.Model):
             } if self.approver else None,
             'approved_at': self.approved_at.isoformat() if self.approved_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'action_comment': self.action_comment
+            'action_comment': self.action_comment,
+            'no_of_leave_days_remaining': self.no_of_leave_days_remaining,
+            'authorised_by': self.authorised_by,
+            'authorised_at': self.authorised_at.isoformat() if self.authorised_at else None,
+            'total_no_leave_days_annual': float(self.total_no_leave_days_annual) if self.total_no_leave_days_annual is not None else None
         }
 
 class ActivityLog(db.Model):

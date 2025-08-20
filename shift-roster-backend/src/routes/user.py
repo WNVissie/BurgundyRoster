@@ -10,9 +10,12 @@ def get_users():
 
 @user_bp.route('/users', methods=['POST'])
 def create_user():
-    
     data = request.json
-    user = User(username=data['username'], email=data['email'])
+    user = User(
+        username=data['username'],
+        email=data['email'],
+        total_no_leave_days_annual=data.get('total_no_leave_days_annual')
+    )
     db.session.add(user)
     db.session.commit()
     return jsonify(user.to_dict()), 201
@@ -28,6 +31,8 @@ def update_user(user_id):
     data = request.json
     user.username = data.get('username', user.username)
     user.email = data.get('email', user.email)
+    if 'total_no_leave_days_annual' in data:
+        user.total_no_leave_days_annual = data['total_no_leave_days_annual']
     db.session.commit()
     return jsonify(user.to_dict())
 

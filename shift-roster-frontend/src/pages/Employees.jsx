@@ -71,12 +71,13 @@ export function Employees() {
     surname: '',
     employee_id: '',
     contact_no: '',
-  email: '',
-  designation_id: '',
+    email: '',
+    designation_id: '',
     role_id: '',
     area_of_responsibility_id: '',
     rate_type: '',
-    rate_value: ''
+    rate_value: '',
+    total_no_leave_days_annual: ''
   });
   const [selectedSkills, setSelectedSkills] = useState([]); // array of skill IDs (string)
   const [initialSelectedSkills, setInitialSelectedSkills] = useState([]);
@@ -127,6 +128,7 @@ export function Employees() {
           ...(formData.area_of_responsibility_id ? { area_of_responsibility_id: parseInt(formData.area_of_responsibility_id, 10) } : {}),
           rate_type: formData.rate_type,
           rate_value: formData.rate_value,
+          total_no_leave_days_annual: formData.total_no_leave_days_annual
         };
         await employeesAPI.update(editingEmployee.id, updateData);
 
@@ -205,14 +207,13 @@ export function Employees() {
         surname: '',
         employee_id: '',
         contact_no: '',
-        alt_contact_name: '',
-        alt_contact_no: '',
         email: '',
         designation_id: '',
         role_id: '',
         area_of_responsibility_id: '',
         rate_type: '',
-        rate_value: ''
+        rate_value: '',
+        total_no_leave_days_annual: ''
       });
       setSelectedSkills([]);
       setInitialSelectedSkills([]);
@@ -239,7 +240,8 @@ export function Employees() {
       role_id: employee.role_id.toString(),
       area_of_responsibility_id: (employee.area_of_responsibility_id ?? '').toString(),
       rate_type: employee.rate_type || '',
-      rate_value: employee.rate_value || ''
+      rate_value: employee.rate_value || '',
+      total_no_leave_days_annual: employee.total_no_leave_days_annual || '' // <-- Add this line
     });
     // Skills selection
     const currentSkills = (employee.skills || []).map(s => s.id.toString());
@@ -557,6 +559,18 @@ export function Employees() {
                   </Select>
                 </div>
                 
+                <div>
+                  <Label htmlFor="annual-leave-days">Annual Leave Days</Label>
+                  <Input
+                    id="annual-leave-days"
+                    type="number"
+                    step="0.01"
+                    value={formData.total_no_leave_days_annual || ''}
+                    onChange={e => setFormData({ ...formData, total_no_leave_days_annual: e.target.value })}
+                    required
+                  />
+                </div>
+
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                     Cancel

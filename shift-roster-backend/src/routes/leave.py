@@ -153,3 +153,35 @@ def delete_leave_request(request_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+@leave_bp.route('/leave/<int:leave_id>/action', methods=['POST'])
+def approve_or_reject_leave(leave_id):
+    data = request.json
+    action = data.get('action')
+    comment = data.get('action_comment', '')
+    authorised_by = data.get('authorised_by')
+    authorised_at = data.get('authorised_at')
+
+    leave_request = LeaveRequest.query.get_or_404(leave_id)
+    user = User.query.get(leave_request.employee_id)
+
+    if action == 'approve':
+        leave_request.status = 'Approved'
+        leave_request.action_comment = comment
+        leave_request.authorised_by = authorised_by
+        leave_request.authorised_at = authorised_at
+
+        # Calculate used leave days
+        approved_leaves = LeaveRequest.query.filter_by(employee_id=user.id, status='Approved').all()
+        used_days = sum([float(lr.days) for lr in approved_leaves]) + float(leave_request.days)
+        leave_request.no_of_leave_days_remaining = float(user.total_no_leave_days_annual) - used_days
+
+    elif action == 'reject':
+        leave_request.status = 'Rejected'
+        leave_request.action_comment = comment
+        leave_request.authorised_by = authorised_by
+        leave_request.authorised_at = authorised_at
+        leave_request.no_of_leave_days_remaining = float(user.total_no_leave_days_annual)  # No change
+
+    db.session.commit()
+    return jsonify(leave_request.to_dict())

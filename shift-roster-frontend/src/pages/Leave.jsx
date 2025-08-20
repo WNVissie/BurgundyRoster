@@ -109,7 +109,13 @@ export function Leave() {
   };
 
   const handleConfirmAction = async () => {
-    await leaveAPI.action(selectedLeaveId, { action: actionType, action_comment: comment });
+    const payload = {
+      action: actionType,
+      action_comment: comment,
+      authorised_by: user.id,
+      authorised_at: new Date().toISOString()
+    };
+    await leaveAPI.action(selectedLeaveId, payload);
     setShowModal(false);
     setComment('');
     fetchLeaveRequests();
@@ -159,7 +165,7 @@ export function Leave() {
                 <DialogHeader>
                   <DialogTitle>New Leave Request</DialogTitle>
                   <DialogDescription>
-                    Fill out the form to request time off.
+                    Fill out the form to request time off.  This document is to be ompleted for any workday that has not been/will be attended by a staff member
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -207,6 +213,17 @@ export function Leave() {
                       required
                     />
                   </div>
+                  <div>
+                    <Label htmlFor="annual-leave-days">Annual Leave Days</Label>
+                    <Input
+                      id="annual-leave-days"
+                      type="number"
+                      step="0.01"
+                      value={form.total_no_leave_days_annual || ''}
+                      onChange={e => setForm({ ...form, total_no_leave_days_annual: e.target.value })}
+                      required
+                    />
+                  </div>
                   <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                       Cancel
@@ -232,6 +249,9 @@ export function Leave() {
                 <TableHead>Type</TableHead>
                 <TableHead>Dates</TableHead>
                 <TableHead>Days</TableHead>
+                <TableHead>Days Remaining</TableHead>
+                <TableHead>Authorised By</TableHead>
+                <TableHead>Authorised At</TableHead>
                 <TableHead>Reason</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Action Comment</TableHead>
@@ -246,7 +266,12 @@ export function Leave() {
                   <TableCell>
                     {format(parseISO(req.start_date), 'MMM d, yyyy')} - {format(parseISO(req.end_date), 'MMM d, yyyy')}
                   </TableCell>
-                  <TableCell>{req.days}</TableCell>
+                  <TableCell>{Number(req.days).toFixed(2)}</TableCell>
+                  <TableCell>{Number(req.no_of_leave_days_remaining).toFixed(2)}</TableCell>
+                  <TableCell>{req.authorised_by ?? '-'}</TableCell>
+                  <TableCell>
+                    {req.authorised_at ? format(parseISO(req.authorised_at), 'MMM d, yyyy HH:mm') : '-'}
+                  </TableCell>
                   <TableCell className="max-w-xs truncate">{req.reason}</TableCell>
                   <TableCell>{getStatusBadge(req.status)}</TableCell>
                   <TableCell>{req.action_comment || ''}</TableCell>
