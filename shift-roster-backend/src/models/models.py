@@ -155,7 +155,7 @@ class User(db.Model):
     rate_value = db.Column(db.Numeric(10, 2), name='rate_-value')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    total_no_leave_days_annual = db.Column(db.Numeric)
+    total_no_leave_days_annual = db.Column('total_no_leave_days_annual_float', db.Float)
     
     # Relationships
     skills = db.relationship('Skill', secondary=employee_skills, lazy='subquery',

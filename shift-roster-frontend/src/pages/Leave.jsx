@@ -82,7 +82,8 @@ export function Leave() {
     }
   };
 
-  const handleAction = async (id, action) => {
+/*  was used for confirm/reject leave without comment (option to use only if no comments is required and the function need to be changed)
+const handleAction = async (id, action) => {
     if (!window.confirm(`Are you sure you want to ${action} this request?`)) return;
     try {
       await leaveAPI.action(id, { action });
@@ -90,7 +91,7 @@ export function Leave() {
     } catch (err) {
       setError(err.response?.data?.error || `Failed to ${action} leave request`);
     }
-  };
+  };*/
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this request?')) return;

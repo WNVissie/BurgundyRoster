@@ -18,13 +18,8 @@ def create_employee():
 def update_employee(id):
     employee = User.query.get_or_404(id)
     data = request.json
-    # ...update other fields...
+    print("Updating annual leave days:", data.get('total_no_leave_days_annual'))
     if 'total_no_leave_days_annual' in data:
-        employee.total_no_leave_days_annual = data['total_no_leave_days_annual']
+        employee.total_no_leave_days_annual = float(data['total_no_leave_days_annual'])
     db.session.commit()
     return jsonify(employee.to_dict())
-
-class User(db.Model):
-    # ...existing fields...
-    total_no_leave_days_annual = db.Column(db.Numeric)
-    # ...existing code...

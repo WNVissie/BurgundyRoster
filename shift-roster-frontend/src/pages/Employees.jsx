@@ -115,6 +115,7 @@ export function Employees() {
     e.preventDefault();
     try {
       if (editingEmployee) {
+        // Update logic
         const updateData = {
           email: formData.email,
           name: formData.name,
@@ -130,6 +131,7 @@ export function Employees() {
           rate_value: formData.rate_value,
           total_no_leave_days_annual: formData.total_no_leave_days_annual
         };
+        console.log('Submitting annual leave days:', formData.total_no_leave_days_annual); // <-- Add this line
         await employeesAPI.update(editingEmployee.id, updateData);
 
         // Sync skills
@@ -171,6 +173,7 @@ export function Employees() {
           }
         }
       } else {
+        // Create logic
         const createData = {
           google_id: `manual_${Date.now()}`,
           email: formData.email,
@@ -185,6 +188,7 @@ export function Employees() {
           ...(formData.area_of_responsibility_id ? { area_of_responsibility_id: parseInt(formData.area_of_responsibility_id, 10) } : {}),
           rate_type: formData.rate_type,
           rate_value: formData.rate_value,
+          total_no_leave_days_annual: formData.total_no_leave_days_annual
         };
         const res = await employeesAPI.create(createData);
         const newId = res?.data?.employee?.id;
@@ -314,7 +318,7 @@ export function Employees() {
           <p className="text-gray-600 mt-1">Manage employee information and assignments</p>
         </div>
         
-  {isAdmin() && (
+{isAdmin() && (
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => {
@@ -601,201 +605,201 @@ export function Employees() {
               </div>
             </div>
             
-      <Select value={selectedRole} onValueChange={setSelectedRole}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Filter by role" />
-              </SelectTrigger>
-              <SelectContent>
-        <SelectItem value="all">All Roles</SelectItem>
-                {roles.map((role) => (
-                  <SelectItem key={role.id} value={role.id.toString()}>
-                    {role.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-      <Select value={selectedArea} onValueChange={setSelectedArea}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Filter by area" />
-              </SelectTrigger>
-              <SelectContent>
-        <SelectItem value="all">All Areas</SelectItem>
-                {areas.map((area) => (
-                  <SelectItem key={area.id} value={area.id.toString()}>
-                    {area.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+<Select value={selectedRole} onValueChange={setSelectedRole}>
+          <SelectTrigger className="w-full md:w-48">
+            <SelectValue placeholder="Filter by role" />
+          </SelectTrigger>
+          <SelectContent>
+    <SelectItem value="all">All Roles</SelectItem>
+            {roles.map((role) => (
+              <SelectItem key={role.id} value={role.id.toString()}>
+                {role.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        
+<Select value={selectedArea} onValueChange={setSelectedArea}>
+          <SelectTrigger className="w-full md:w-48">
+            <SelectValue placeholder="Filter by area" />
+          </SelectTrigger>
+          <SelectContent>
+    <SelectItem value="all">All Areas</SelectItem>
+            {areas.map((area) => (
+              <SelectItem key={area.id} value={area.id.toString()}>
+                {area.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        </div>
+      </CardContent>
+    </Card>
 
-      {/* Error Alert */}
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+    {/* Error Alert */}
+    {error && (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    )}
 
-      {/* Employees Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Employee List</CardTitle>
-          <CardDescription>
-            {filteredEmployees.length} of {employees.length} employees
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Alt Contact Name</TableHead>
-                  <TableHead>Alt Contact</TableHead>
-                  <TableHead>Designation</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Area</TableHead>
-                  <TableHead>Skills</TableHead>
-                  {/* <TableHead>Licenses</TableHead> */}
-                  {isAdmin() && <TableHead>Actions</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredEmployees.map((employee) => (
-                  <TableRow key={employee.id}>
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                          <span className="text-white text-sm font-medium">
-                            {employee.name.charAt(0)}{employee.surname.charAt(0)}
-                          </span>
-                        </div>
-                        <div>
-                          <div className="font-medium">{employee.name} {employee.surname}</div>
-                          <div className="text-sm text-gray-500 flex items-center">
-                            <Mail className="h-3 w-3 mr-1" />
-                            {employee.email}
-                          </div>
+    {/* Employees Table */}
+    <Card>
+      <CardHeader>
+        <CardTitle>Employee List</CardTitle>
+        <CardDescription>
+          {filteredEmployees.length} of {employees.length} employees
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Employee</TableHead>
+                <TableHead>ID</TableHead>
+                <TableHead>Contact</TableHead>
+                <TableHead>Alt Contact Name</TableHead>
+                <TableHead>Alt Contact</TableHead>
+                <TableHead>Designation</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Area</TableHead>
+                <TableHead>Skills</TableHead>
+                {/* <TableHead>Licenses</TableHead> */}
+                {isAdmin() && <TableHead>Actions</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredEmployees.map((employee) => (
+                <TableRow key={employee.id}>
+                  <TableCell>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                        <span className="text-white text-sm font-medium">
+                          {employee.name.charAt(0)}{employee.surname.charAt(0)}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="font-medium">{employee.name} {employee.surname}</div>
+                        <div className="text-sm text-gray-500 flex items-center">
+                          <Mail className="h-3 w-3 mr-1" />
+                          {employee.email}
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{employee.employee_id}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm flex items-center">
-                        <Phone className="h-3 w-3 mr-1" />
-                        {employee.contact_no}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">{employee.alt_contact_name || '-'}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">{employee.alt_contact_no || '-'}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">{employee.designation || '-'}</div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{getRoleName(employee.role_id)}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm flex items-center">
-                        <MapPin className="h-3 w-3 mr-1" />
-                    {(() => {
-                      const area = getArea(employee.area_of_responsibility_id);
-                      if (!area) return 'N/A';
-                      return (
-                        <Badge
-                          style={{
-                            backgroundColor: area.color,
-                            color: 'white', // A simple choice, could be improved with a color contrast function
-                          }}
-                        >
-                          {area.name}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{employee.employee_id}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm flex items-center">
+                      <Phone className="h-3 w-3 mr-1" />
+                      {employee.contact_no}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">{employee.alt_contact_name || '-'}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">{employee.alt_contact_no || '-'}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">{employee.designation || '-'}</div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{getRoleName(employee.role_id)}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm flex items-center">
+                      <MapPin className="h-3 w-3 mr-1" />
+                  {(() => {
+                    const area = getArea(employee.area_of_responsibility_id);
+                    if (!area) return 'N/A';
+                    return (
+                      <Badge
+                        style={{
+                          backgroundColor: area.color,
+                          color: 'white', // A simple choice, could be improved with a color contrast function
+                        }}
+                      >
+                        {area.name}
+                      </Badge>
+                    );
+                  })()}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {employee.skills?.slice(0, 2).map((skill) => (
+                        <Badge key={skill.id} variant="outline" className="text-xs">
+                          {skill.name}
                         </Badge>
-                      );
-                    })()}
-                      </div>
-                    </TableCell>
+                      ))}
+                      {employee.skills?.length > 2 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{employee.skills.length - 2}
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  {/* <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {(employee.licenses_detailed || []).slice(0, 5).map((ld) => {
+                        const soon = ld.expiring_soon;
+                        const expired = ld.expired;
+                        const cls = expired ? 'bg-red-100 text-red-700 border-red-300' : (soon ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : '');
+                        return (
+                          <Badge key={ld.license_id} variant="outline" className={`text-xs ${cls}`}>
+                            {(ld.license?.name || ld.name || 'License')}{ld.expiry_date ? ` (${ld.expiry_date})` : ''}
+                          </Badge>
+                        );
+                      })}
+                      {employee.licenses_detailed && employee.licenses_detailed.length > 5 && (
+                        <Badge variant="outline" className="text-xs">+{employee.licenses_detailed.length - 5}</Badge>
+                      )}
+                    </div>
+                  </TableCell> */}
+                  {isAdmin() && (
                     <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {employee.skills?.slice(0, 2).map((skill) => (
-                          <Badge key={skill.id} variant="outline" className="text-xs">
-                            {skill.name}
-                          </Badge>
-                        ))}
-                        {employee.skills?.length > 2 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{employee.skills.length - 2}
-                          </Badge>
-                        )}
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(employee)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(employee.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
-                    {/* <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {(employee.licenses_detailed || []).slice(0, 5).map((ld) => {
-                          const soon = ld.expiring_soon;
-                          const expired = ld.expired;
-                          const cls = expired ? 'bg-red-100 text-red-700 border-red-300' : (soon ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : '');
-                          return (
-                            <Badge key={ld.license_id} variant="outline" className={`text-xs ${cls}`}>
-                              {(ld.license?.name || ld.name || 'License')}{ld.expiry_date ? ` (${ld.expiry_date})` : ''}
-                            </Badge>
-                          );
-                        })}
-                        {employee.licenses_detailed && employee.licenses_detailed.length > 5 && (
-                          <Badge variant="outline" className="text-xs">+{employee.licenses_detailed.length - 5}</Badge>
-                        )}
-                      </div>
-                    </TableCell> */}
-                    {isAdmin() && (
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(employee)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(employee.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        
+        {filteredEmployees.length === 0 && (
+          <div className="text-center py-8">
+            <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No employees found</h3>
+            <p className="text-gray-500">
+              {searchTerm || selectedRole || selectedArea
+                ? 'Try adjusting your search or filter criteria.'
+                : 'Get started by adding your first employee.'}
+            </p>
           </div>
-          
-          {filteredEmployees.length === 0 && (
-            <div className="text-center py-8">
-              <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No employees found</h3>
-              <p className="text-gray-500">
-                {searchTerm || selectedRole || selectedArea
-                  ? 'Try adjusting your search or filter criteria.'
-                  : 'Get started by adding your first employee.'}
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
+        )}
+      </CardContent>
+    </Card>
+  </div>
+);
 }
