@@ -75,7 +75,7 @@ def get_dashboard_metrics():
         ).scalar() or 0
 
         # Get recent activities
-        recent_activities = ActivityLog.query.order_by(ActivityLog.timestamp.desc()).limit(5).all()
+        recent_activities = ActivityLog.query.order_by(ActivityLog.timestamp.desc()).limit(30).all()
         
         return jsonify({
             'date_range': {
