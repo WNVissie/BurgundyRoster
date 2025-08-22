@@ -152,6 +152,9 @@ export function Reports() {
     </div>
   );
 
+  const safeResults = Array.isArray(results) ? results : [];
+  const safeAcceptanceReportData = Array.isArray(acceptanceReportData) ? acceptanceReportData : [];
+
   return (
     <div className="space-y-6">
       <Card>
@@ -220,7 +223,7 @@ export function Reports() {
               {acceptanceReportLoading ? 'Generating...' : 'Generate Report'}
             </Button>
           </div>
-          {acceptanceReportData.length > 0 && (
+          {safeAcceptanceReportData.length > 0 && (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -231,7 +234,7 @@ export function Reports() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {acceptanceReportData.map(entry => (
+                {safeAcceptanceReportData.map(entry => (
                   <TableRow key={entry.id}>
                     <TableCell>{entry.employee.name} {entry.employee.surname}</TableCell>
                     <TableCell>{entry.date}</TableCell>
@@ -332,7 +335,7 @@ export function Reports() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {results.map(employee => (
+              {safeResults.map(employee => (
                 <TableRow key={employee.id}>
                   <TableCell>{employee.name} {employee.surname}</TableCell>
                   <TableCell>{employee.role?.name}</TableCell>

@@ -353,7 +353,6 @@ class LeaveRequest(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     action_comment = db.Column(db.String(255))  # <-- Add this line
     no_of_leave_days_remaining = db.Column(db.Numeric)
-    total_no_leave_days_annual = db.Column(db.Numeric)
     authorised_by = db.Column(db.Integer)
     authorised_at = db.Column(db.DateTime)
 
@@ -365,6 +364,7 @@ class LeaveRequest(db.Model):
         return f'<LeaveRequest {self.employee.name} - {self.leave_type} - {self.start_date}>'
     
     def to_dict(self):
+        print(f"LeaveRequest ID: {self.id}, employee: {self.employee}, annual: {getattr(self.employee, 'total_no_leave_days_annual', 'MISSING') if self.employee else 'NO EMPLOYEE'}")
         return {
             'id': self.id,
             'employee_id': self.employee_id,
@@ -392,7 +392,7 @@ class LeaveRequest(db.Model):
             'no_of_leave_days_remaining': self.no_of_leave_days_remaining,
             'authorised_by': self.authorised_by,
             'authorised_at': self.authorised_at.isoformat() if self.authorised_at else None,
-            'total_no_leave_days_annual': float(self.total_no_leave_days_annual) if self.total_no_leave_days_annual is not None else None
+            'total_no_leave_days_annual': float(self.employee.total_no_leave_days_annual) if self.employee and self.employee.total_no_leave_days_annual is not None else None
         }
 
 class ActivityLog(db.Model):

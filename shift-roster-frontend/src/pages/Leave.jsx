@@ -214,17 +214,7 @@ const handleAction = async (id, action) => {
                       required
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="annual-leave-days">Annual Leave Days</Label>
-                    <Input
-                      id="annual-leave-days"
-                      type="number"
-                      step="0.01"
-                      value={form.total_no_leave_days_annual || ''}
-                      onChange={e => setForm({ ...form, total_no_leave_days_annual: e.target.value })}
-                      required
-                    />
-                  </div>
+
                   <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                       Cancel
