@@ -31,8 +31,13 @@ def get_roster():
             # Managers can see all rosters (for approval)
             query = ShiftRoster.query
         else:
-            # Employees can only see their own rosters
-            query = ShiftRoster.query.filter(ShiftRoster.employee_id == current_user.id)
+            # Employees can only see their own approved or accepted rosters
+            query = ShiftRoster.query.filter(
+                and_(
+                    ShiftRoster.employee_id == current_user.id,
+                    or_(ShiftRoster.status == 'approved', ShiftRoster.status == 'accepted')
+                )
+            )
         
         # Apply filters
         if start_date:

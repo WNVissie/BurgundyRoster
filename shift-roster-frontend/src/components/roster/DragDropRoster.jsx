@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useAuth } from '../../contexts/AuthContext';
-import { rosterAPI, employeesAPI, shiftsAPI } from '../../lib/api';
+import { rosterAPI, employeesAPI, shiftsAPI, areasAPI } from '../../lib/api';
 import api from '../../lib/api';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -185,7 +185,7 @@ function CalendarDropZone({ day, children, onDrop, isToday }) {
 // Shift Selection Modal
 function ShiftSelectionModal({ isOpen, onClose, onSelect, shifts, employee, areas }) {
   const [swapArea, setSwapArea] = useState(false);
-  const [selectedArea, setSelectedArea] = useState(employee ? employee.defaultAreaId : "");
+  const [selectedArea, setSelectedArea] = useState(employee ? employee.area_of_responsibility_id : "");
 
   if (!isOpen || !employee) return null;
 
@@ -210,6 +210,7 @@ function ShiftSelectionModal({ isOpen, onClose, onSelect, shifts, employee, area
               onChange={e => setSelectedArea(e.target.value)}
               className="ml-2 border rounded p-1"
             >
+              <option value="">Select an area...</option>
               {areas.map(area => (
                 <option key={area.id} value={area.id}>
                   {area.name}
@@ -222,7 +223,7 @@ function ShiftSelectionModal({ isOpen, onClose, onSelect, shifts, employee, area
           {shifts.map((shift) => (
             <button
               key={shift.id}
-              onClick={() => onSelect(shift, swapArea ? selectedArea : employee.defaultAreaId)}
+              onClick={() => onSelect(shift, swapArea ? selectedArea : employee.area_of_responsibility_id)}
               className="w-full text-left p-3 border rounded-lg hover:bg-gray-50 transition-colors"
             >
               {shift.name} ({shift.start_time} - {shift.end_time})
@@ -248,6 +249,7 @@ export function DragDropRoster() {
   const [roster, setRoster] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [shifts, setShifts] = useState([]);
+  const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentWeek, setCurrentWeek] = useState(new Date());
@@ -261,18 +263,20 @@ export function DragDropRoster() {
       const startDate = startOfWeek(currentWeek);
       const endDate = endOfWeek(currentWeek);
       
-      const [rosterRes, employeesRes, shiftsRes] = await Promise.all([
+      const [rosterRes, employeesRes, shiftsRes, areasRes] = await Promise.all([
         rosterAPI.getAll({
           start_date: format(startDate, 'yyyy-MM-dd'),
           end_date: format(endDate, 'yyyy-MM-dd')
         }),
         employeesAPI.getAll(),
-        shiftsAPI.getAll()
+        shiftsAPI.getAll(),
+        areasAPI.getAll()
       ]);
       
       setRoster(rosterRes.data.roster || []);
       setEmployees(employeesRes.data.employees || []);
       setShifts(shiftsRes.data.shifts || []);
+      setAreas(areasRes.data.areas || []);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to fetch roster data');
     } finally {
@@ -313,7 +317,7 @@ export function DragDropRoster() {
         date: format(selectedDate, 'yyyy-MM-dd'),
         status: 'pending',
         hours: shift.hours,
-        area_id: areaId
+        area_of_responsibility_id: areaId
       };
       
       await rosterAPI.create(rosterData);
@@ -345,6 +349,14 @@ export function DragDropRoster() {
 
   const getShift = (shiftId) => {
     return shifts.find(s => s.id === shiftId);
+  };
+
+  const getArea = (areaId) => {
+    return areas.find(a => a.id === areaId);
+  };
+
+  const getEmployee = (employeeId) => {
+    return employees.find(e => e.id === employeeId);
   };
 
   const navigateWeek = (direction) => {
@@ -452,6 +464,8 @@ export function DragDropRoster() {
                     const entry = rosterByEmpDate.get(key);
                     const isToday = isSameDay(day, new Date());
                     const shift = entry ? getShift(entry.shift_id) : null;
+                    const area = entry?.area_of_responsibility_id ? getArea(entry.area_of_responsibility_id) : null;
+                    const isDifferentArea = area && area.id !== emp.area_of_responsibility_id;
                     return (
                       <CalendarDropZone
                         key={idx}
@@ -477,6 +491,13 @@ export function DragDropRoster() {
                               <Clock className="h-3 w-3 mr-1" />
                               {shift?.start_time} - {shift?.end_time} • {entry.hours}h
                             </div>
+                            {area && (
+                              <div className={`text-xs mt-1 p-1 rounded ${
+                                isDifferentArea ? 'bg-red-100 text-red-800 font-bold' : 'opacity-75'
+                              }`}>
+                                Area: {area.name}
+                              </div>
+                            )}
                             {(isAdmin() || isManager()) && entry.status === 'pending' && (
                               <div className="flex gap-1">
                                 <Button
@@ -524,7 +545,7 @@ export function DragDropRoster() {
           onSelect={handleShiftSelect}
           shifts={shifts}
           employee={selectedEmployee}
-          areas={employees.find(emp => emp.id === selectedEmployee?.id)?.areas || []}
+          areas={areas}
         />
       </div>
     </DndProvider>

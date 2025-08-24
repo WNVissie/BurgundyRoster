@@ -55,6 +55,19 @@ def create_leave_request():
             return jsonify({'error': 'Start date cannot be after end date'}), 400
 
         days = (end_date - start_date).days + 1
+        
+        # Calculate remaining days when leave is created
+        # Get all authorised leave for this employee
+        authorised_leaves = LeaveRequest.query.filter_by(
+            employee_id=current_user.id, 
+            status='authorised'
+        ).all()
+        
+        total_used_days = sum(float(leave.days) for leave in authorised_leaves)
+        annual_leave_allocation = float(current_user.total_no_leave_days_annual or 0)
+        
+        # Calculate what would remain if this leave is approved
+        remaining_days = annual_leave_allocation - total_used_days - days
 
         new_request = LeaveRequest(
             employee_id=current_user.id,
@@ -62,7 +75,8 @@ def create_leave_request():
             start_date=start_date,
             end_date=end_date,
             days=days,
-            reason=data['reason']
+            reason=data['reason'],
+            no_of_leave_days_remaining=remaining_days  # Store what would remain if approved
         )
         db.session.add(new_request)
         db.session.commit()
@@ -72,35 +86,97 @@ def create_leave_request():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@leave_bp.route('/<int:request_id>/action', methods=['POST'])
+@leave_bp.route('/<int:request_id>/approve', methods=['POST'])
 @jwt_required()
 @manager_required
-def action_leave_request(request_id):
-    """Approve or reject a leave request."""
+def approve_leave_request(request_id):
+    """Supervisor approves a leave request (first stage)."""
     try:
         current_user = get_current_user()
         leave_request = LeaveRequest.query.get(request_id)
         if not leave_request:
             return jsonify({'error': 'Leave request not found'}), 404
 
+        if leave_request.status != 'pending':
+            return jsonify({'error': 'Leave request is not in pending status'}), 400
+
         data = request.get_json()
-        action = data.get('action')
+        action = data.get('action')  # 'approve' or 'reject'
 
         if action not in ['approve', 'reject']:
             return jsonify({'error': 'Invalid action. Must be "approve" or "reject"'}), 400
 
+        # Get the employee who made the leave request
+        employee = User.query.get(leave_request.employee_id)
+        
+        # Update approval fields (first stage)
         leave_request.status = 'approved' if action == 'approve' else 'rejected'
         leave_request.approved_by = current_user.id
         leave_request.approved_at = datetime.utcnow()
-
-        # New field action_comment
         leave_request.action_comment = data.get('action_comment', '')
 
-        if leave_request.status == 'approved':
-            # Find the "On Leave" shift
+        # If rejected at approval stage, calculate current remaining days (no deduction)
+        if action == 'reject':
+            current_remaining = (float(employee.total_no_leave_days_annual or 0) - 
+                               sum(float(leave.days) for leave in 
+                                   LeaveRequest.query.filter_by(employee_id=employee.id, status='authorised').all()))
+            leave_request.no_of_leave_days_remaining = current_remaining
+
+        # Don't calculate leave days for approvals yet - that happens at authorization stage
+        
+        db.session.commit()
+        return jsonify(leave_request.to_dict()), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@leave_bp.route('/<int:request_id>/authorise', methods=['POST'])
+@jwt_required()
+@manager_required
+def authorise_leave_request(request_id):
+    """HR/Manager authorises an approved leave request (second stage)."""
+    try:
+        current_user = get_current_user()
+        leave_request = LeaveRequest.query.get(request_id)
+        if not leave_request:
+            return jsonify({'error': 'Leave request not found'}), 404
+
+        if leave_request.status != 'approved':
+            return jsonify({'error': 'Leave request must be approved first'}), 400
+
+        data = request.get_json()
+        action = data.get('action')  # 'authorise' or 'reject'
+
+        if action not in ['authorise', 'reject']:
+            return jsonify({'error': 'Invalid action. Must be "authorise" or "reject"'}), 400
+
+        # Get the employee who made the leave request
+        employee = User.query.get(leave_request.employee_id)
+        
+        # Update authorization fields (second stage)
+        if action == 'authorise':
+            leave_request.status = 'authorised'
+            leave_request.authorised_by = current_user.id
+            leave_request.authorised_at = datetime.utcnow()
+            
+            # NOW calculate and update remaining leave days (only on authorization)
+            authorised_leaves = LeaveRequest.query.filter_by(
+                employee_id=employee.id, 
+                status='authorised'
+            ).all()
+            
+            total_used_days = sum(float(leave.days) for leave in authorised_leaves) + float(leave_request.days)
+            annual_allocation = float(employee.total_no_leave_days_annual or 0)
+            remaining_days = annual_allocation - total_used_days
+            
+            # Update both the leave request and user records
+            leave_request.no_of_leave_days_remaining = remaining_days
+            employee.total_no_leave_days_annual_float = remaining_days
+            
+            # Find the "On Leave" shift and create roster entries
             leave_shift = Shift.query.filter_by(name='On Leave').first()
             if leave_shift:
-                # Iterate through the leave dates and create roster entries
                 current_date = leave_request.start_date
                 while current_date <= leave_request.end_date:
                     # Check if a shift already exists for this employee on this day
@@ -115,18 +191,43 @@ def action_leave_request(request_id):
                             shift_id=leave_shift.id,
                             date=current_date,
                             hours=0,
-                            status='approved' # Automatically approved
+                            status='approved'
                         )
                         db.session.add(new_roster_entry)
 
                     current_date += timedelta(days=1)
+        else:
+            # Rejected at authorization stage - revert to pending or rejected
+            leave_request.status = 'rejected'
+            leave_request.authorised_by = current_user.id
+            leave_request.authorised_at = datetime.utcnow()
+            
+            # No change to remaining days since it was never deducted
+            current_remaining = (float(employee.total_no_leave_days_annual or 0) - 
+                               sum(float(leave.days) for leave in 
+                                   LeaveRequest.query.filter_by(employee_id=employee.id, status='authorised').all()))
+            leave_request.no_of_leave_days_remaining = current_remaining
+
+        # Add authorization comment if provided
+        auth_comment = data.get('action_comment', '')
+        if auth_comment:
+            existing_comment = leave_request.action_comment or ''
+            leave_request.action_comment = f"{existing_comment}\nAuth: {auth_comment}" if existing_comment else f"Auth: {auth_comment}"
 
         db.session.commit()
-
         return jsonify(leave_request.to_dict()), 200
+        
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+# Keep the old endpoint for backward compatibility (deprecated)
+@leave_bp.route('/<int:request_id>/action', methods=['POST'])
+@jwt_required()
+@manager_required
+def action_leave_request(request_id):
+    """Legacy endpoint - redirects to approve endpoint."""
+    return approve_leave_request(request_id)
 
 @leave_bp.route('/<int:request_id>', methods=['DELETE'])
 @jwt_required()
@@ -154,34 +255,3 @@ def delete_leave_request(request_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@leave_bp.route('/leave/<int:leave_id>/action', methods=['POST'])
-def approve_or_reject_leave(leave_id):
-    data = request.json
-    action = data.get('action')
-    comment = data.get('action_comment', '')
-    authorised_by = data.get('authorised_by')
-    authorised_at = data.get('authorised_at')
-
-    leave_request = LeaveRequest.query.get_or_404(leave_id)
-    user = User.query.get(leave_request.employee_id)
-
-    if action == 'approve':
-        leave_request.status = 'Approved'
-        leave_request.action_comment = comment
-        leave_request.authorised_by = authorised_by
-        leave_request.authorised_at = authorised_at
-
-        # Calculate used leave days
-        approved_leaves = LeaveRequest.query.filter_by(employee_id=user.id, status='Approved').all()
-        used_days = sum([float(lr.days) for lr in approved_leaves]) + float(leave_request.days)
-        leave_request.no_of_leave_days_remaining = float(user.total_no_leave_days_annual) - used_days
-
-    elif action == 'reject':
-        leave_request.status = 'Rejected'
-        leave_request.action_comment = comment
-        leave_request.authorised_by = authorised_by
-        leave_request.authorised_at = authorised_at
-        leave_request.no_of_leave_days_remaining = float(user.total_no_leave_days_annual)  # No change
-
-    db.session.commit()
-    return jsonify(leave_request.to_dict())

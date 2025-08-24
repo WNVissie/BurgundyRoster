@@ -56,7 +56,7 @@ def employee_search_report():
                 and_(
                     ShiftRoster.employee_id == employee.id,
                     ShiftRoster.date == today,
-                    ShiftRoster.status == 'approved'
+                    ShiftRoster.status == 'approved'    
                 )
             ).first()
             if on_shift:

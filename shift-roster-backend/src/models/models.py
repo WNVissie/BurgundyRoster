@@ -155,7 +155,8 @@ class User(db.Model):
     rate_value = db.Column(db.Numeric(10, 2), name='rate_-value')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    total_no_leave_days_annual = db.Column('total_no_leave_days_annual_float', db.Float)
+    total_no_leave_days_annual = db.Column(db.Float)  # Annual leave allocation set by admin
+    total_no_leave_days_annual_float = db.Column(db.Float)   # Remaining leave days (updated when leave is approved)
     
     # Relationships
     skills = db.relationship('Skill', secondary=employee_skills, lazy='subquery',
@@ -205,7 +206,8 @@ class User(db.Model):
             'skills': [skill.to_dict() for skill in self.skills],
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-            'total_no_leave_days_annual': float(self.total_no_leave_days_annual) if self.total_no_leave_days_annual is not None else None
+            'total_no_leave_days_annual': float(self.total_no_leave_days_annual) if self.total_no_leave_days_annual is not None else None,
+            'total_no_leave_days_annual_float': float(self.total_no_leave_days_annual_float) if self.total_no_leave_days_annual_float is not None else None
         }
 
 class Shift(db.Model):
@@ -364,7 +366,13 @@ class LeaveRequest(db.Model):
         return f'<LeaveRequest {self.employee.name} - {self.leave_type} - {self.start_date}>'
     
     def to_dict(self):
-        print(f"LeaveRequest ID: {self.id}, employee: {self.employee}, annual: {getattr(self.employee, 'total_no_leave_days_annual', 'MISSING') if self.employee else 'NO EMPLOYEE'}")
+        # Get authorised_by user name if exists
+        authorised_by_name = None
+        if self.authorised_by:
+            authoriser = User.query.get(self.authorised_by)
+            if authoriser:
+                authorised_by_name = f"{authoriser.name} {authoriser.surname}"
+        
         return {
             'id': self.id,
             'employee_id': self.employee_id,
@@ -377,7 +385,7 @@ class LeaveRequest(db.Model):
             'leave_type': self.leave_type,
             'start_date': self.start_date.isoformat() if self.start_date else None,
             'end_date': self.end_date.isoformat() if self.end_date else None,
-            'days': self.days,
+            'days': float(self.days) if self.days is not None else 0,
             'reason': self.reason,
             'status': self.status,
             'approved_by': self.approved_by,
@@ -389,8 +397,9 @@ class LeaveRequest(db.Model):
             'approved_at': self.approved_at.isoformat() if self.approved_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'action_comment': self.action_comment,
-            'no_of_leave_days_remaining': self.no_of_leave_days_remaining,
+            'no_of_leave_days_remaining': float(self.no_of_leave_days_remaining) if self.no_of_leave_days_remaining is not None else 0,
             'authorised_by': self.authorised_by,
+            'authorised_by_name': authorised_by_name,
             'authorised_at': self.authorised_at.isoformat() if self.authorised_at else None,
             'total_no_leave_days_annual': float(self.employee.total_no_leave_days_annual) if self.employee and self.employee.total_no_leave_days_annual is not None else None
         }

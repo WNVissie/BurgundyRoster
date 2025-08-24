@@ -78,6 +78,42 @@ function StaticRosterView() {
     });
   };
 
+  const selectEntireDay = (date) => {
+    const dayRoster = getRosterForDate(date);
+    const dayShiftIds = dayRoster.map(r => r.id);
+    
+    setSelectedShifts(prev => {
+      const newSet = new Set(prev);
+      const allSelected = dayShiftIds.every(id => newSet.has(id));
+      
+      if (allSelected) {
+        // Deselect all shifts for this day
+        dayShiftIds.forEach(id => newSet.delete(id));
+      } else {
+        // Select all shifts for this day
+        dayShiftIds.forEach(id => newSet.add(id));
+      }
+      return newSet;
+    });
+  };
+
+  const selectEntireWeek = () => {
+    const allWeekShiftIds = roster.map(r => r.id);
+    
+    setSelectedShifts(prev => {
+      const newSet = new Set(prev);
+      const allSelected = allWeekShiftIds.every(id => newSet.has(id));
+      
+      if (allSelected) {
+        // Deselect entire week
+        return new Set();
+      } else {
+        // Select entire week
+        return new Set(allWeekShiftIds);
+      }
+    });
+  };
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -156,9 +192,9 @@ function StaticRosterView() {
       // Show all shifts for admins/managers
       return roster.filter(r => isSameDay(parseISO(r.date), date));
     }
-    // Employees see only their own shifts
+    // Employees see only their own approved shifts (pending and rejected shifts are hidden)
     return roster.filter(
-      r => isSameDay(parseISO(r.date), date) && r.employee_id === user.id
+      r => isSameDay(parseISO(r.date), date) && r.employee_id === user.id && (r.status === 'approved' || r.status === 'accepted')
     );
   };
 
@@ -167,6 +203,8 @@ function StaticRosterView() {
   };
 
   const getShift = (shiftId) => shifts.find(s => String(s.id) === String(shiftId));
+
+  const getArea = (areaId) => areas.find(a => a.id === areaId);
 
   // status helpers moved inline using colored badges
 
@@ -369,6 +407,16 @@ function StaticRosterView() {
                   <div className="text-center mb-3">
                     <div className="text-sm font-medium">{format(day, 'EEE')}</div>
                     <div className="text-lg font-bold">{format(day, 'd')}</div>
+                    {dayRoster.length > 0 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-1 text-xs h-6 px-2"
+                        onClick={() => selectEntireDay(day)}
+                      >
+                        {dayRoster.every(r => selectedShifts.has(r.id)) ? 'Deselect Day' : 'Select Day'}
+                      </Button>
+                    )}
                   </div>
                   
                   <div className="space-y-2">
@@ -510,6 +558,32 @@ function StaticRosterView() {
         </div>
       )}
 
+      {/* Bulk Selection Controls */}
+      {(isAdmin() || isManager()) && roster.length > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <p className="text-sm font-medium">Bulk Selection:</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={selectEntireWeek}
+                >
+                  {roster.every(r => selectedShifts.has(r.id)) ? 'Deselect All Week' : 'Select All Week'}
+                </Button>
+              </div>
+              
+              {selectedShifts.size > 0 && (
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600">{selectedShifts.size} shift(s) selected</span>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Bulk Actions */}
       {selectedShifts.size > 0 && (
         <Card>
@@ -620,15 +694,17 @@ function StaticRosterView() {
       {isEmployee() && (
         <div className="mt-6">
           <h2 className="text-xl font-semibold mb-4">My Shifts</h2>
-          {roster.filter(r => r.employee_id === user.id).map(r => {
+          {roster.filter(r => r.employee_id === user.id && (r.status === 'approved' || r.status === 'accepted')).map(r => {
             const shift = getShift(r.shift_id);
+            const area = r.area_of_responsibility_id ? getArea(r.area_of_responsibility_id) : null;
+            const isDifferentArea = area && area.id !== user.area_of_responsibility_id;
             return (
               <div key={r.id} className="flex items-center justify-between p-3 rounded-md border mb-2"
                 style={{
                   backgroundColor: r.status === 'accepted' ? '#e8f5e9' : '#f3f4f6'
                 }}
               >
-                <div>
+                <div className="flex-1">
                   <div className="text-sm font-medium">
                     {r.date} - {user.name} {user.surname}
                   </div>
@@ -638,6 +714,13 @@ function StaticRosterView() {
                   <div className="text-xs text-gray-500">
                     {shift?.name}
                   </div>
+                  {area && (
+                    <div className={`text-xs mt-1 p-1 rounded inline-block ${
+                      isDifferentArea ? 'bg-red-100 text-red-800 font-bold' : 'bg-blue-100 text-blue-800'
+                    }`}>
+                      Area: {area.name}{isDifferentArea ? ' (Temporary Assignment)' : ''}
+                    </div>
+                  )}
                 </div>
                 <Button
                   style={{
@@ -656,7 +739,7 @@ function StaticRosterView() {
               </div>
             );
           })}
-          {roster.filter(r => r.employee_id === user.id).length === 0 && (
+          {roster.filter(r => r.employee_id === user.id && r.status !== 'rejected').length === 0 && (
             <div className="text-center text-gray-400 py-8">
               <CalendarIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p className="text-xs">No shifts scheduled</p>

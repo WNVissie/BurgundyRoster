@@ -48,7 +48,7 @@ export function Leave() {
     reason: '',
   });
   const [showModal, setShowModal] = useState(false);
-  const [actionType, setActionType] = useState('');
+  const [actionType, setActionType] = useState(''); // 'approve', 'reject', 'authorise'
   const [comment, setComment] = useState('');
   const [selectedLeaveId, setSelectedLeaveId] = useState(null);
 
@@ -110,22 +110,33 @@ const handleAction = async (id, action) => {
   };
 
   const handleConfirmAction = async () => {
-    const payload = {
-      action: actionType,
-      action_comment: comment,
-      authorised_by: user.id,
-      authorised_at: new Date().toISOString()
-    };
-    await leaveAPI.action(selectedLeaveId, payload);
-    setShowModal(false);
-    setComment('');
-    fetchLeaveRequests();
+    try {
+      const payload = {
+        action: actionType === 'authorise' ? 'authorise' : actionType,
+        action_comment: comment
+      };
+      
+      // Use appropriate endpoint based on action type
+      if (actionType === 'authorise') {
+        await leaveAPI.authorise(selectedLeaveId, payload);
+      } else {
+        await leaveAPI.approve(selectedLeaveId, payload);
+      }
+      
+      setShowModal(false);
+      setComment('');
+      fetchLeaveRequests();
+    } catch (err) {
+      setError(err.response?.data?.error || `Failed to ${actionType} leave request`);
+    }
   };
 
   const getStatusBadge = (status) => {
     switch (status) {
+      case 'authorised':
+        return <Badge variant="success">Authorised</Badge>;
       case 'approved':
-        return <Badge variant="success">Approved</Badge>;
+        return <Badge className="bg-blue-100 text-blue-800">Approved</Badge>;
       case 'rejected':
         return <Badge variant="destructive">Rejected</Badge>;
       default:
@@ -241,12 +252,13 @@ const handleAction = async (id, action) => {
                 <TableHead>Dates</TableHead>
                 <TableHead>Days</TableHead>
                 <TableHead>Days Remaining</TableHead>
+                <TableHead>Approved By</TableHead>
                 <TableHead>Authorised By</TableHead>
-                <TableHead>Authorised At</TableHead>
                 <TableHead>Reason</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Action Comment</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>Comments</TableHead>
+                <TableHead>Approve</TableHead>
+                <TableHead>Authorise</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -258,32 +270,55 @@ const handleAction = async (id, action) => {
                     {format(parseISO(req.start_date), 'MMM d, yyyy')} - {format(parseISO(req.end_date), 'MMM d, yyyy')}
                   </TableCell>
                   <TableCell>{Number(req.days).toFixed(2)}</TableCell>
-                  <TableCell>{Number(req.no_of_leave_days_remaining).toFixed(2)}</TableCell>
-                  <TableCell>{req.authorised_by ?? '-'}</TableCell>
+                  <TableCell>{req.no_of_leave_days_remaining ? Number(req.no_of_leave_days_remaining).toFixed(2) : '0.00'}</TableCell>
                   <TableCell>
-                    {req.authorised_at ? format(parseISO(req.authorised_at), 'MMM d, yyyy HH:mm') : '-'}
+                    {req.approver ? `${req.approver.name} ${req.approver.surname}` : '-'}
                   </TableCell>
+                  <TableCell>{req.authorised_by_name || '-'}</TableCell>
                   <TableCell className="max-w-xs truncate">{req.reason}</TableCell>
                   <TableCell>{getStatusBadge(req.status)}</TableCell>
-                  <TableCell>{req.action_comment || ''}</TableCell>
+                  <TableCell className="max-w-xs truncate">{req.action_comment || ''}</TableCell>
+                  
+                  {/* Approve Column */}
                   <TableCell>
-                    <div className="flex space-x-1">
-                      {isManager && req.status === 'pending' && (
-                        <>
-                          <Button variant="ghost" size="sm" className="text-green-600 hover:text-green-700" onClick={() => handleActionClick(req.id, 'approve')}>
-                            <Check className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => handleActionClick(req.id, 'reject')}>
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </>
-                      )}
-                      {!isManager && req.status === 'pending' && (
-                         <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => handleDelete(req.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                      )}
-                    </div>
+                    {isManager && req.status === 'pending' && (
+                      <div className="flex space-x-1">
+                        <Button variant="ghost" size="sm" className="text-green-600 hover:text-green-700" onClick={() => handleActionClick(req.id, 'approve')}>
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => handleActionClick(req.id, 'reject')}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                    {req.status === 'approved' && (
+                      <Badge className="bg-green-100 text-green-800">✓ Approved</Badge>
+                    )}
+                    {req.status === 'rejected' && (
+                      <Badge variant="destructive">✗ Rejected</Badge>
+                    )}
+                    {!isManager && req.status === 'pending' && (
+                      <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => handleDelete(req.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </TableCell>
+                  
+                  {/* Authorise Column */}
+                  <TableCell>
+                    {isManager && req.status === 'approved' && (
+                      <div className="flex space-x-1">
+                        <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700" onClick={() => handleActionClick(req.id, 'authorise')}>
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => handleActionClick(req.id, 'reject')}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                    {req.status === 'authorised' && (
+                      <Badge variant="success">✓ Authorised</Badge>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -295,7 +330,16 @@ const handleAction = async (id, action) => {
         <Dialog open={showModal} onOpenChange={setShowModal}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{actionType === 'approve' ? 'Approve' : 'Reject'} Leave</DialogTitle>
+              <DialogTitle>
+                {actionType === 'approve' && 'Approve Leave Request'}
+                {actionType === 'authorise' && 'Authorise Leave Request'}
+                {actionType === 'reject' && 'Reject Leave Request'}
+              </DialogTitle>
+              <DialogDescription>
+                {actionType === 'approve' && 'Supervisor approval - first stage of the leave process.'}
+                {actionType === 'authorise' && 'Final authorization - leave days will be deducted from employee allowance.'}
+                {actionType === 'reject' && 'Reject this leave request with a comment.'}
+              </DialogDescription>
             </DialogHeader>
             <div className="py-4">
               <Textarea

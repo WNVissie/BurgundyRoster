@@ -20,45 +20,50 @@ def test_employees():
         return jsonify({'error': str(e)}), 500
 
 @employees_bp.route('', methods=['GET'])
-# @jwt_required()  # Temporarily removed for debugging
+@jwt_required()
 def get_employees():
     """Get all employees with optional filtering"""
     try:
-        # Temporarily bypass permission check for debugging
-        # current_user = get_current_user()
-        # if not current_user:
-        #     return jsonify({'error': 'User not found. Please login again.'}), 401
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'error': 'User not found. Please login again.'}), 401
         
-        # Check permissions
-        # if not current_user.role_ref or current_user.role_ref.name not in ['Admin', 'Manager']:
-        #     return jsonify({'error': 'Insufficient permissions'}), 403
+        # Check permissions - Employees can get basic employee list for display,
+        # but only Admin and Manager can use advanced filtering
+        has_admin_permissions = current_user.role_ref and current_user.role_ref.name in ['Admin', 'Manager']
         
-        # Get query parameters
+        # Get query parameters for filtering
         role_id = request.args.get('role_id', type=int)
         area_id = request.args.get('area_id', type=int)
         skill_id = request.args.get('skill_id', type=int)
         search = request.args.get('search', '')
         
+        # If non-admin user tries to use filtering, deny access
+        if not has_admin_permissions and (role_id or area_id or skill_id or search):
+            return jsonify({'error': 'Insufficient permissions for filtered employee data'}), 403
+        
         # Build query
         query = User.query
         
-        if role_id:
-            query = query.filter(User.role_id == role_id)
-        
-        if area_id:
-            query = query.filter(User.area_of_responsibility_id == area_id)
-        
-        if skill_id:
-            query = query.join(User.skills).filter(Skill.id == skill_id)
-        
-        if search:
-            search_filter = f'%{search}%'
-            query = query.filter(
-                (User.name.ilike(search_filter)) |
-                (User.surname.ilike(search_filter)) |
-                (User.email.ilike(search_filter)) |
-                (User.employee_id.ilike(search_filter))
-            )
+        # Only apply filters if user has admin permissions
+        if has_admin_permissions:
+            if role_id:
+                query = query.filter(User.role_id == role_id)
+            
+            if area_id:
+                query = query.filter(User.area_of_responsibility_id == area_id)
+            
+            if skill_id:
+                query = query.join(User.skills).filter(Skill.id == skill_id)
+            
+            if search:
+                search_filter = f'%{search}%'
+                query = query.filter(
+                    (User.name.ilike(search_filter)) |
+                    (User.surname.ilike(search_filter)) |
+                    (User.email.ilike(search_filter)) |
+                    (User.employee_id.ilike(search_filter))
+                )
         
         employees = query.all()
         
@@ -117,7 +122,9 @@ def create_employee():
             role_id=data['role_id'],
             area_of_responsibility_id=data.get('area_of_responsibility_id'),
             rate_type=data.get('rate_type'),
-            rate_value=data.get('rate_value')
+            rate_value=data.get('rate_value'),
+            total_no_leave_days_annual=data.get('total_no_leave_days_annual'),
+            total_no_leave_days_annual_float=data.get('total_no_leave_days_annual')  # Initialize remaining days to same as annual
         )
         
         db.session.add(employee)
@@ -172,7 +179,7 @@ def update_employee(employee_id):
         
         # Admin can update all fields
         if current_user.role_ref.name == 'Admin':
-            allowed_fields = ['email', 'name', 'surname', 'employee_id', 'contact_no', 'alt_contact_name', 'alt_contact_no', 'licenses', 'designation_id', 'role_id', 'area_of_responsibility_id', 'rate_type', 'rate_value']
+            allowed_fields = ['email', 'name', 'surname', 'employee_id', 'contact_no', 'alt_contact_name', 'alt_contact_no', 'licenses', 'designation_id', 'role_id', 'area_of_responsibility_id', 'rate_type', 'rate_value', 'total_no_leave_days_annual']
         # Users can only update their own contact info
         elif current_user.id == employee_id:
             allowed_fields = ['contact_no']
@@ -196,6 +203,20 @@ def update_employee(employee_id):
                     employee.area_of_responsibility_id = data[field]
                 elif field == 'designation_id':
                     employee.designation_id = data[field]
+                elif field == 'total_no_leave_days_annual':
+                    employee.total_no_leave_days_annual = data[field]
+                    # When admin updates annual leave allocation, reset remaining days
+                    # unless there are already approved leaves that need to be accounted for
+                    if data[field] is not None:
+                        from src.models.models import LeaveRequest
+                        approved_leaves = LeaveRequest.query.filter_by(
+                            employee_id=employee.id, 
+                            status='approved'
+                        ).all()
+                        total_used_days = sum(float(leave.days) for leave in approved_leaves)
+                        employee.total_no_leave_days_annual_float = float(data[field]) - total_used_days
+                    else:
+                        employee.total_no_leave_days_annual_float = None
                 else:
                     setattr(employee, field, data[field])
         

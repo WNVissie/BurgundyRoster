@@ -4,7 +4,7 @@ import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
-import api, { timesheetsAPI } from '../lib/api';
+import api, { timesheetsAPI, employeesAPI } from '../lib/api';
 import { format } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -18,17 +18,36 @@ const Timesheets = () => {
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [selectedTimesheet, setSelectedTimesheet] = useState(null);
   const [rejectionNotes, setRejectionNotes] = useState('');
+  const [employeeId, setEmployeeId] = useState('');
+  const [employees, setEmployees] = useState([]);
 
   useEffect(() => {
     fetchTimesheets();
+    // Fetch employees if user is admin or manager
+    if (isAdmin() || isManager()) {
+      fetchEmployees();
+    }
   }, []);
 
-  async function fetchTimesheets() {
+  async function fetchEmployees() {
+    try {
+      const res = await employeesAPI.getAll();
+      setEmployees(res.data?.employees || []);
+    } catch (e) {
+      console.error('Failed to fetch employees:', e);
+      setEmployees([]);
+    }
+  }
+
+  async function fetchTimesheets(specificEmployeeId = null) {
     setLoading(true);
     try {
       const params = {};
       if (startDate) params.start_date = startDate;
       if (endDate) params.end_date = endDate;
+      // Use the passed employeeId or the state value
+      const currentEmployeeId = specificEmployeeId !== null ? specificEmployeeId : employeeId;
+      if (currentEmployeeId) params.employee_id = currentEmployeeId;
       const res = await timesheetsAPI.getAll(params);
       setTimesheets(res.data || []);
     } catch (e) {
@@ -60,6 +79,10 @@ const Timesheets = () => {
       setEndDate(week.end);
     } else {
       payload = { start_date: startDate, end_date: endDate };
+    }
+    // Include employee_id if set and user is admin/manager
+    if (employeeId && (isAdmin() || isManager())) {
+      payload.employee_id = employeeId;
     }
     try {
       await timesheetsAPI.generate(payload);
@@ -94,6 +117,9 @@ const Timesheets = () => {
         start_date: startDate,
         end_date: endDate,
       };
+      if (employeeId) {
+        params.employee_id = employeeId;
+      }
       const res = await api.get('/export/timesheets/excel', { params, responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const a = document.createElement('a');
@@ -112,6 +138,29 @@ const Timesheets = () => {
       <div style={{ marginBottom: 16 }}>
         <label>Start Date: <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
         <label style={{ marginLeft: 8 }}>End Date: <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} /></label>
+        {(isAdmin() || isManager()) && (
+          <label style={{ marginLeft: 8 }}>
+            Employee: 
+            <select 
+              value={employeeId} 
+              onChange={e => {
+                const newEmployeeId = e.target.value;
+                setEmployeeId(newEmployeeId);
+                // Pass the new employeeId directly to fetchTimesheets to avoid timing issues
+                fetchTimesheets(newEmployeeId);
+              }}
+              disabled={loading}
+              style={{ marginLeft: 4 }}
+            >
+              <option value="">All Employees</option>
+              {employees.map(emp => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.name} {emp.surname}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <Button
           onClick={() => handleGenerate('custom')}
           disabled={!startDate || !endDate || generating}

@@ -133,7 +133,9 @@ export const licensesAPI = {
 export const leaveAPI = {
   getAll: (params) => api.get('/leave', { params }),
   create: (data) => api.post('/leave', data),
-  action: (id, data) => api.post(`/leave/${id}/action`, data),
+  approve: (id, data) => api.post(`/leave/${id}/approve`, data),
+  authorise: (id, data) => api.post(`/leave/${id}/authorise`, data),
+  action: (id, data) => api.post(`/leave/${id}/action`, data), // Deprecated - kept for backward compatibility
   delete: (id) => api.delete(`/leave/${id}`),
 };
 
