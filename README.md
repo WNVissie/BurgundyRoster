@@ -174,7 +174,7 @@ docker-compose up --build
 
 ## 👥 Default User Accounts
 
-The application comes with pre-configured demo accounts:
+The application comes with pre-configured demo accounts:  now using user table in sqllite dbase file - check and verify
 
 | Role | Email | Password | Access Level |
 |------|-------|----------|--------------|
@@ -201,6 +201,55 @@ The application comes with pre-configured demo accounts:
 - `PUT /api/roster/{id}` - Update shift assignment
 - `DELETE /api/roster/{id}` - Delete shift assignment
 
+### Leave Management
+- `GET /api/leave_requests` - List all leave requests
+- `POST /api/leave_requests` - Create new leave request
+- `PUT /api/leave_requests/{id}` - Update leave request
+- `DELETE /api/leave_requests/{id}` - Delete leave request
+
+### Timesheet Management
+- `GET /api/timesheets` - List all timesheets
+- `POST /api/timesheets` - Create new timesheet entry
+- `PUT /api/timesheets/{id}` - Update timesheet entry
+- `DELETE /api/timesheets/{id}` - Delete timesheet entry
+
+### Skills Management
+- `GET /api/skills` - List all skills
+- `POST /api/skills` - Create new skill
+- `PUT /api/skills/{id}` - Update skill
+- `DELETE /api/skills/{id}` - Delete skill
+
+### License Management
+- `GET /api/licenses` - List all licenses
+- `POST /api/licenses` - Create new license
+- `PUT /api/licenses/{id}` - Update license
+- `DELETE /api/licenses/{id}` - Delete license
+
+### Area & Designation Management
+- `GET /api/area` - List all work areas
+- `POST /api/area` - Create new work area
+- `PUT /api/area/{id}` - Update work area
+- `DELETE /api/area/{id}` - Delete work area
+
+- `GET /api/designations` - List all designations
+- `POST /api/designations` - Create new designation
+- `PUT /api/designations/{id}` - Update designation
+- `DELETE /api/designations/{id}` - Delete designation
+
+### Role Management
+- `GET /api/roles` - List all roles
+- `POST /api/roles` - Create new role
+- `PUT /api/roles/{id}` - Update role
+- `DELETE /api/roles/{id}` - Delete role
+
+### Community & Activity
+- `GET /api/community_posts` - List all community posts
+- `POST /api/community_posts` - Create new community post
+- `PUT /api/community_posts/{id}` - Update community post
+- `DELETE /api/community_posts/{id}` - Delete community post
+
+- `GET /api/activity_logs` - List all activity logs
+
 ### Analytics
 - `GET /api/analytics/dashboard` - Get dashboard metrics
 - `GET /api/analytics/employees` - Employee analytics
@@ -210,6 +259,12 @@ The application comes with pre-configured demo accounts:
 - `GET /api/export/employees/csv` - Export employees to CSV
 - `GET /api/export/roster/excel` - Export roster to Excel
 - `POST /api/import/employees/csv` - Import employees from CSV
+
+---
+
+**Note:**  
+The original README was missing endpoints for Leave Management, Timesheet Management, Skills, Licenses, Area, Designation, Community Posts, and Activity Logs.  
+These have now been added for completeness and to match your schema and application
 
 ## 🎯 Usage Guide
 

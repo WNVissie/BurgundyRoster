@@ -33,9 +33,9 @@ Login with email and password or demo account.
 **Request Body:**
 ```json
 {
-  "email": "admin@company.com",
-  "password": "admin123",
-  "login_type": "demo"
+  "email": "google email - has to be in the user table",
+  "password": Google authorisation (log in with google)
+  "login_type": "admin"
 }
 ```
 

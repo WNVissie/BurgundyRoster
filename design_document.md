@@ -288,6 +288,61 @@ A comprehensive employee shift roster application with React frontend and Flask 
 - Export options
 - Date range filters
 
+## Additional Tables for Future Expansion
+
+Below are tables present in your database schema but not yet fully described in the design document. You can add these to your design for completeness and future development:
+
+---
+
+### Activity Logs Table (used but testing currently)
+
+Tracks user actions and system events for auditing and monitoring.
+
+**Fields:**
+- `id` (Primary Key)
+- `user_id` (Foreign Key to Users)
+- `action` (String, e.g., "Logged in", "Created shift", "Approved leave")
+- `timestamp` (DateTime)
+- `details` (Text, optional — additional info about the action)
+
+**Relationships:**
+- Linked to Users (One-to-Many: one user can have many activity logs)
+
+---
+
+### Community Posts Table (testing)
+
+Allows users to post messages or announcements to the team.
+
+**Fields:**
+- `id` (Primary Key)
+- `user_id` (Foreign Key to Users)
+- `content` (Text)
+- `created_at` (DateTime)
+
+**Relationships:**
+- Linked to Users (One-to-Many: one user can have many posts)
+
+---
+
+### Areas Table (Reserved for Future Use)
+
+Defines physical or logical areas within the organization.
+
+**Fields:**
+- `area_id` (Primary Key)
+- `name` (Unique, String)
+- `description` (Text, optional)
+- `created_at` (DateTime, optional)
+
+**Note:**  
+Currently not used in the application, but reserved for future expansion.
+
+---
+
+Add these tables to your design document to keep it aligned with your schema and to support future features such as auditing, team communication,
+
+
 ## Technology Stack
 
 ### Frontend
