@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { rolesAPI, areasAPI, skillsAPI, shiftsAPI } from '../lib/api';
+import { rolesAPI, areasAPI, skillsAPI, shiftsAPI, licensesAPI } from '../lib/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -43,6 +43,7 @@ export function Admin() {
   const [areas, setAreas] = useState([]);
   const [skills, setSkills] = useState([]);
   const [shifts, setShifts] = useState([]);
+  const [licenses, setLicenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('roles');
@@ -75,17 +76,19 @@ export function Admin() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [rolesRes, areasRes, skillsRes, shiftsRes] = await Promise.all([
+      const [rolesRes, areasRes, skillsRes, shiftsRes, licensesRes] = await Promise.all([
         rolesAPI.getAll(),
         areasAPI.getAll(),
         skillsAPI.getAll(),
-        shiftsAPI.getAll()
+        shiftsAPI.getAll(),
+        licensesAPI.getAll() // <-- Add this line
       ]);
       
       setRoles(rolesRes.data.roles || []);
       setAreas(areasRes.data.areas || []);
       setSkills(skillsRes.data.skills || []);
       setShifts(shiftsRes.data.shifts || []);
+      setLicenses(licensesRes.data.licenses || []); // <-- Add this line
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to fetch data');
     } finally {
@@ -251,9 +254,13 @@ export function Admin() {
     }
   };
 
+  // License error state
+  const [licenseError, setLicenseError] = useState(null);
+
   // License management
   const handleLicenseSubmit = async (e) => {
     e.preventDefault();
+    setLicenseError(null);
     try {
       if (editingLicense) {
         await licensesAPI.update(editingLicense.id, licenseForm);
@@ -265,28 +272,20 @@ export function Admin() {
       setLicenseForm({ name: '', description: '' });
       fetchData();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save license');
+      setLicenseError(err.response?.data?.error || 'Failed to save license');
     }
   };
 
-  const handleLicenseEdit = (license) => {
-    setEditingLicense(license);
-    setLicenseForm({
-      name: license.name,
-      description: license.description || ''
-    });
-    setIsLicenseDialogOpen(true);
-  };
+  // Removed unused handleLicenseDelete function
 
-  const handleLicenseDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this license?')) {
-      try {
-        await licensesAPI.delete(id);
-        fetchData();
-      } catch (err) {
-        setError(err.response?.data?.error || 'Failed to delete license');
-      }
-    }
+  // Fetch licenses on mount
+  useEffect(() => {
+    fetchLicenses();
+  }, []);
+
+  const fetchLicenses = async () => {
+    const res = await licensesAPI.getAll();
+    setLicenses(res.data.licenses || []);
   };
 
   if (loading) {
@@ -814,6 +813,116 @@ export function Admin() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* License Dialog - Moved outside of Tabs */}
+      {isLicenseDialogOpen && (
+  <div className="dialog">
+    <form onSubmit={handleLicenseSubmit}>
+      <h3>Add License</h3>
+      <input
+        value={licenseForm.name}
+        onChange={e => setLicenseForm({ ...licenseForm, name: e.target.value })}
+        placeholder="License Name"
+        required
+      />
+      <input
+        value={licenseForm.description}
+        onChange={e => setLicenseForm({ ...licenseForm, description: e.target.value })}
+        placeholder="Description"
+      />
+      <button type="submit">Add</button>
+      <button type="button" onClick={() => setIsLicenseDialogOpen(false)}>Cancel</button>
+      {licenseError && <div style={{ color: 'red' }}>{licenseError}</div>}
+    </form>
+  </div>
+)}
+
+      {/* Licenses Section - Consistent UI */}
+      <section>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-xl font-bold">Licenses</h2>
+          <Button onClick={() => {
+            setEditingLicense(null);
+            setLicenseForm({ name: '', description: '' });
+            setIsLicenseDialogOpen(true);
+          }}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add License
+          </Button>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {licenses.map(lic => (
+              <TableRow key={lic.id}>
+                <TableCell>
+                  <Badge variant="secondary">{lic.name}</Badge>
+                </TableCell>
+                <TableCell>{lic.description}</TableCell>
+                <TableCell>
+                  <div className="flex space-x-2">
+                    <Button variant="ghost" size="sm" onClick={() => {
+                      setEditingLicense(lic);
+                      setLicenseForm({ name: lic.name, description: lic.description || '' });
+                      setIsLicenseDialogOpen(true);
+                    }}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </section>
+
+      {/* License Dialog */}
+      <Dialog open={isLicenseDialogOpen} onOpenChange={setIsLicenseDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingLicense ? 'Edit License' : 'Add New License'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingLicense ? 'Update license information.' : 'Create a new license.'}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleLicenseSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="license-name">License Name</Label>
+              <Input
+                id="license-name"
+                value={licenseForm.name}
+                onChange={e => setLicenseForm({ ...licenseForm, name: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="license-description">Description</Label>
+              <Textarea
+                id="license-description"
+                value={licenseForm.description}
+                onChange={e => setLicenseForm({ ...licenseForm, description: e.target.value })}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsLicenseDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                {editingLicense ? 'Update' : 'Create'}
+              </Button>
+            </DialogFooter>
+            {licenseError && <div className="text-red-600">{licenseError}</div>}
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -125,7 +125,7 @@ export const skillsAPI = {
 export const licensesAPI = {
   getAll: () => api.get('/licenses/'),
   create: (data) => api.post('/licenses/', data),
-  update: (id, data) => api.put(`/licenses/${id}`),
+  update: (id, data) => api.put(`/licenses/${id}`, data),
   delete: (id) => api.delete(`/licenses/${id}`),
 };
 

@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
-from src.models.models import db, Role, AreaOfResponsibility, Skill, Shift
+from src.models.models import db, Role, AreaOfResponsibility, Skill, Shift, License
 from src.utils.decorators import permission_required, role_required
 from datetime import time
 import json
@@ -23,7 +23,7 @@ def get_roles():
 
 @admin_bp.route('/roles', methods=['POST'])
 @permission_required('manage_roles')
-def create_role():
+def create_role(): 
     """Create a new role"""
     try:
         data = request.get_json()
@@ -447,6 +447,47 @@ def delete_shift(shift_id):
         
         return jsonify({'message': 'Shift deleted successfully'}), 200
         
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# Licenses Management
+# Get all licenses
+@admin_bp.route('/licenses', methods=['GET'])
+@jwt_required()
+def get_licenses():
+    """Get all licenses"""
+    try:
+        licenses = License.query.all()
+        return jsonify({
+            'licenses': [license.to_dict() for license in licenses],
+            'total': len(licenses)
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Create a new license
+@admin_bp.route('/licenses', methods=['POST'])
+@permission_required('manage_licenses')
+def create_license():
+    """Create a new license"""
+    try:
+        data = request.get_json()
+        if 'name' not in data:
+            return jsonify({'error': 'License name is required'}), 400
+        existing_license = License.query.filter_by(name=data['name']).first()
+        if existing_license:
+            return jsonify({'error': 'License with this name already exists'}), 400
+        license = License(
+            name=data['name'],
+            description=data.get('description', '')
+        )
+        db.session.add(license)
+        db.session.commit()
+        return jsonify({
+            'message': 'License created successfully',
+            'license': license.to_dict()
+        }), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
