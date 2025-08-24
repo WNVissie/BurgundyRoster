@@ -192,6 +192,10 @@ const handleAction = async (id, action) => {
                       <option>Unpaid</option>
                       <option>Paid</option>
                       <option>Sick</option>
+                      <option>Maternity leave</option>
+                      <option>Special leave</option>
+                      <option>Family Responsibility leave</option>
+                      <option>Other</option>
                     </select>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
